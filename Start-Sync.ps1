@@ -1,3 +1,8 @@
+# TrayEnabled parameter is used to enable/disable the tray icon
+param(
+    [Parameter(Mandatory = $false)]
+    [bool]$TrayEnabled = $false
+)
 
 
 function Add-WTProfileForContainer {
@@ -25,7 +30,7 @@ function Backup-WTSettings {
     $backupFilePath = $wtSettingsFilePath `
         -replace "\.json$", ".backup.$(Get-Date -Format 'yyyyMMddHHmmss').json"
     Copy-Item -Path $wtSettingsFilePath -Destination $backupFilePath
-    Write-InfoMessage "Settings backed up to $backupFilePath"
+    Write-DebugMessage "Settings backed up to $backupFilePath"
 }
 
 function Save-WTSettings {
@@ -37,7 +42,7 @@ function Save-WTSettings {
     )
     # Convert back to JSON and write to the file
     $settings | ConvertTo-Json -Depth 10 | Set-Content -Path $wtSettingsFilePath
-    Write-InfoMessage "Settings updated"
+    Write-DebugMessage "Settings updated"
 }
 
 
@@ -51,14 +56,52 @@ function Get-WTSettings {
     return $currentSettings
 }
 
+function Write-ToTray {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$message
+    )
+    if ($TrayEnabled) {
+        # truncate the message to 128 characters. This is the maximum length of the tray icon text
+        $message = $message.Substring(0, [Math]::Min(127, $message.Length))
+        $trayIcon.Text = $message
+    }  
+}
+enum Status {
+    Healthy
+    Working
+    Warning
+}
+
+function Set-TrayIconStatus {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Status]$status
+    )
+    if ($TrayEnabled) {
+        if ($status -eq [Status]::Healthy) {
+            $trayIcon.Icon = $ICON_OK
+        }
+        elseif ($status -eq [Status]::Working) {
+            $trayIcon.Icon = $ICON_WORKING
+        }
+        else {
+            $trayIcon.Icon = $ICON_OFF
+        }
+    }
+}
+
 function Write-ErrorMessage {
     param(
         [Parameter(Mandatory = $true)]
         [string]$message
     )
     $message = "Fatal: $message"
-    Write-Host $message -ForegroundColor Red
-}
+    Write-ToTray $message
+    #high beep
+    [console]::beep(700, 50)
+}   Write-Host $message -ForegroundColor Red
+ 
 
 function Write-WarnMessage {
     param(
@@ -66,6 +109,7 @@ function Write-WarnMessage {
         [string]$message
     )
     $message = "Warn: $message"
+    Write-ToTray $message
     Write-Host $message -ForegroundColor Yellow
 }
 
@@ -75,7 +119,17 @@ function Write-InfoMessage {
         [string]$message
     )
     $message = "Info: $message"
+    Write-ToTray $message
     Write-Host $message -ForegroundColor Green
+}
+
+function Write-DebugMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$message
+    )
+    $message = "Debug: $message"
+    Write-Host $message -ForegroundColor Gray
 }
 
 
@@ -84,7 +138,7 @@ function Remove-ContainerProfiles {
         [Parameter(Mandatory = $true)]
         [string]$wtSettingsFilePath
     )
-    Write-InfoMessage "Removing container profiles..."
+    Write-DebugMessage "Removing container profiles..."
     $currentSettings = Get-WTSettings -wtSettingsFilePath $wtSettingsFilePath
 
     # check for orphaned profiles and remove them. 
@@ -100,7 +154,7 @@ function Sync-ContainerProfilesStatus {
         [Parameter(Mandatory = $true)]
         [string]$wtSettingsFilePath
     )
-    Write-InfoMessage "Syncing container profiles with running containers..."
+    Write-DebugMessage "Syncing container profiles with running containers..."
     $currentSettings = Get-WTSettings -wtSettingsFilePath $wtSettingsFilePath
 
     # check for orphaned profiles and remove them. 
@@ -109,7 +163,7 @@ function Sync-ContainerProfilesStatus {
 
     # check for running containers and add a profile for each of them
     docker ps --format '{{.Names}}' | ForEach-Object {
-        Write-InfoMessage "Container '$_' is running. Adding profile..."
+        Write-DebugMessage "Container '$_' is running. Adding profile..."
         $newProfile = Add-WTProfileForContainer -containerName $_
         $currentSettings.profiles.list += $newProfile
     }
@@ -129,6 +183,7 @@ function Sync-ContainerProfilesBasedOnEvents {
     docker events --format '{{json .}}' `
         --filter 'type=container' --filter 'event=start' --filter 'event=die' | ForEach-Object { 
 
+        Set-TrayIconStatus -status Working
         $eventObject = $_ | ConvertFrom-Json
         $containerName = $eventObject.Actor.Attributes.Name
 
@@ -139,18 +194,19 @@ function Sync-ContainerProfilesBasedOnEvents {
 
 
         if ($eventObject.Action -eq "start" -and $eventObject.Type -eq "container") {
-            Write-InfoMessage "Container '$containerName' started. Adding profile..."
             # Add a new profile for the started container
             $newProfile = Add-WTProfileForContainer -containerName $containerName
             $currentSettings.profiles.list += $newProfile
+            Write-InfoMessage "Container '$containerName' started. Added profile."
         }
         elseif ($eventObject.Action -eq "die" -and $eventObject.Type -eq "container") {
-            Write-InfoMessage "Container '$containerName' died. Removing profile..." 
             # Remove the profile for the stopped container
             $currentSettings.profiles.list = $currentSettings.profiles.list | Where-Object { $_.name -ne $profileName }
+            Write-InfoMessage "Container '$containerName' died. Removed profile."
         }
 
         Save-WTSettings -wtSettingsFilePath $wtSettingsFilePath -settings $currentSettings
+        Set-TrayIconStatus -status Healthy
     }
 }
 
@@ -160,6 +216,7 @@ function Get-WTSettingsFilePath {
     # test if the package is installed and exit if not
     If (-Not $terminalpackage) {
         Write-ErrorMessage "Windows Terminal is not installed"
+        DisableTrayIcon
         exit
     }
     # get the path to the settings.json file
@@ -169,15 +226,18 @@ function Get-WTSettingsFilePath {
     if (-Not  (Test-Path $wtSettingsFilePath)) {
         #write an error message to the terminal
         Write-ErrorMessage "Windows Terminal settings file not found"
+        DisableTrayIcon
         exit
     }
     return $wtSettingsFilePath
 }
 
 function Test-DockerDaemon {
+    Set-TrayIconStatus -status Working
     # test if the docker command is available and exit if not
     if (-Not (Get-Command docker.exe -ErrorAction SilentlyContinue)) {
         Write-ErrorMessage "Docker is not installed"
+        DisableTrayIcon
         exit
     }
 
@@ -185,52 +245,32 @@ function Test-DockerDaemon {
     $dockerVersion = docker version -f '{{.Server.Version}}'
     #if it doesn't contain a valid version number, the docker daemon is not running
     if ($dockerVersion -notmatch "\d+\.\d+\.\d+") {
+        Set-TrayIconStatus -status Warning
         return $false
     }
-    Write-InfoMessage "Connected to docker daemon version $dockerVersion"
+    Set-TrayIconStatus -status Healthy
+    Write-DebugMessage "Connected to docker daemon version $dockerVersion"
     return $true
 }
 
-function Invoke-DoWhileFunction {
-    param (
-        [scriptblock]$ActionFunction,
-        [scriptblock]$ConditionFunction,
-        [int]$InitialSleepDurationInSeconds,
-        [int]$NumberOfInitialSleeps,
-        [int]$LongSleepDurationInSeconds,
-        [string]$LoopMessage 
-    )
 
+function Connect-DockerDaemon{
     $loops = 0
 
-    while (& $ConditionFunction) {
-        & $ActionFunction
-        if ($loops -lt $NumberOfInitialSleeps) {
-            $sleepDuration = $InitialSleepDurationInSeconds
+    while (-Not (Test-DockerDaemon)) {
+        Write-WarnMessage "Docker daemon not available. This may be due to a docker daemon restart or quit."
+        if ($loops -lt $12) {
+            $sleepDuration = 1
         }
         else {
-            $sleepDuration = $LongSleepDurationInSeconds
+            $sleepDuration = 5
         }
-        if ($LoopMessage) {
-            Write-InfoMessage "$LoopMessage in $sleepDuration seconds..."
-        }
+
+        Write-InfoMessage "Retrying to connect to docker daemon in $sleepDuration seconds..."
         Start-Sleep -Seconds $sleepDuration
         $loops++
     }
-}
-
-function Connect-DockerDaemon() {
-    $action = {
-        Write-WarnMessage "Docker daemon not available. This may be due to a docker daemon restart or quit."
-    }
-    
-    Invoke-DoWhileFunction -ActionFunction `
-        $action `
-        -ConditionFunction { -Not (Test-DockerDaemon) } `
-        -InitialSleepDurationInSeconds 1 `
-        -NumberOfInitialSleeps 12 `
-        -LongSleepDurationInSeconds 5 `
-        -LoopMessage "Retrying to connect to docker daemon"
+    Set-TrayIconStatus -status Healthy
 }
 
 
@@ -241,26 +281,72 @@ function Start-SyncBasedOnEvents {
     )
 
     while ($true) {
+
+        # try to connect to the docker daemon. This may take a while if the daemon is restarting
+        Connect-DockerDaemon
+
+        # sync the container status with the profiles. 
+        # This will add profiles for running containers and remove profiles for stopped containers
+        Sync-ContainerProfilesStatus -wtSettingsFilePath $wtSettingsFilePath
+    
+        Set-TrayIconStatus -status Healthy
         Sync-ContainerProfilesBasedOnEvents -wtSettingsFilePath $wtSettingsFilePath
+        #beep to indicate that the docker events command has quit
+        [console]::beep(500, 100)
+        Set-TrayIconStatus -status Warning
+
         # if we get here, the docker events command has quit. This may be due to a docker daemon restart or quit.
         Write-WarnMessage "Docker events not available. This may be due to a docker daemon restart or quit."
         Remove-ContainerProfiles -wtSettingsFilePath $wtSettingsFilePath
-        # retry to connect to the docker daemon. This may take a while if the daemon is restarting
-        Connect-DockerDaemon
-        # sync the container status with the profiles.
-        Sync-ContainerProfilesStatus -wtSettingsFilePath $wtSettingsFilePath
     }
 
 }
 
+function NewTrayIcon(){
+    $TrayIcon = New-Object System.Windows.Forms.NotifyIcon
+    $TrayIcon.Visible = $true
+    $TrayIcon.Icon = $ICON_OFF
+
+    return $TrayIcon
+}
+function DisableTrayIcon(){
+    if ($TrayEnabled) {
+        $TrayIcon.Visible = $false
+        $TrayIcon.Dispose()
+    }
+}
+
+
+
+
+
+# starting the script
+
+
+if ($TrayEnabled) {
+
+    [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
+    # Convert my png (bitmap) to an icon
+    $ICON_OK  = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::FromFile($(Join-Path $PSScriptRoot '\icon_on.png'))).GetHicon()) 
+    $ICON_OFF = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::FromFile($(Join-Path $PSScriptRoot '\icon_off.png'))).GetHicon())
+    $ICON_WORKING = [System.Drawing.Icon]::FromHandle(([System.Drawing.Bitmap]::FromFile($(Join-Path $PSScriptRoot '\icon_working.png'))).GetHicon())
+    
+
+
+    # We'll use tray icon to keep the script running until the user clicks on the icon
+    # and as a visual indicator that the script is running
+    $trayIcon = NewTrayIcon
+    $trayIcon.Add_Click(
+        {
+            DisableTrayIcon
+            # removing container profiles on exit
+            Remove-ContainerProfiles -wtSettingsFilePath $wtSettingsFilePath
+            Stop-Process $pid
+        }
+    )
+}
+
 
 $wtSettingsFilePath = Get-WTSettingsFilePath
-
 Backup-WTSettings -wtSettingsFilePath $wtSettingsFilePath
-Connect-DockerDaemon
-
-# sync the container status with the profiles. 
-# This will add profiles for running containers and remove profiles for stopped containers
-Sync-ContainerProfilesStatus -wtSettingsFilePath $wtSettingsFilePath
-
 Start-SyncBasedOnEvents -wtSettingsFilePath $wtSettingsFilePath
