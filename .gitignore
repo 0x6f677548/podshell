@@ -1,0 +1,4 @@
+.podshell.venv/*
+.vscode/*
+.localtests/*
+*.pyc
