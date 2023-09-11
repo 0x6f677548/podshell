@@ -20,29 +20,9 @@ class DockerConnector(BaseConnector):
         self.docker_client = docker_client
         self.shell_command = shell_command
 
-    def _handle_docker_event(self, event):
-        if self._logger.isEnabledFor(logging.DEBUG):
-            self._logger.debug("Docker event: %s", str(event))
-        if event["Action"] == "start":
-            container_name = event["Actor"]["Attributes"]["name"]
-            container_profile = configuration.TerminalProfile(
-                container_name,
-                self._get_command(container_name),
-            )
-
-            self.connector_event_handler(
-                ConnectorEvent(ConnectorEventTypes.PROFILE_ADDED, container_name)
-            )
-
-            self.configuration.add_profile(
-                container_profile, self.connector_friendly_name
-            )
-        elif event["Action"] == "die" or event["Action"] == "stop":
-            container_name = event["Actor"]["Attributes"]["name"]
-            self.configuration.remove_profile(container_name)
-            self.connector_event_handler(
-                ConnectorEvent(ConnectorEventTypes.PROFILE_REMOVED, container_name)
-            )
+    def health_check(self) -> bool:
+        docker_client = self._get_docker_client()
+        return docker_client.ping()
 
     def _get_command(self, container_name):
         return f"docker exec -it {container_name} {self.shell_command}"
@@ -53,20 +33,56 @@ class DockerConnector(BaseConnector):
         else:
             return self.docker_client
 
-    def health_check(self) -> bool:
-        docker_client = self._get_docker_client()
-        return docker_client.ping()
+    def _handle_docker_event(self, event):
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug("Docker event: %s", str(event))
+
+        if (
+            event["Action"] == "start"
+            or event["Action"] == "die"
+            or event["Action"] == "stop"
+        ):
+            # Add or remove container. Create a terminal profile for the container.
+            container_name = event["Actor"]["Attributes"]["name"]
+            terminal_profile = configuration.TerminalProfile(
+                container_name,
+                self._get_command(container_name),
+            )
+
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.debug(
+                    "Docker event: %s, %s", event["Action"], terminal_profile.commandline
+                )
+
+            # call the event handler signaling that a container has been added or removed
+            self.connector_event_handler(
+                ConnectorEvent(
+                    connector_friendly_name=self.connector_friendly_name,
+                    event_type=ConnectorEventTypes.ADD_PROFILE
+                    if event["Action"] == "start"
+                    else ConnectorEventTypes.REMOVE_PROFILE,
+                    terminal_profile=terminal_profile,
+                    event=container_name,
+                )
+            )
 
     def _run(self):
         try:
             docker_client = self._get_docker_client()
 
+            # Add existing containers
             for container in docker_client.containers.list():
-                container_profile = configuration.TerminalProfile(
+                terminal_profile = configuration.TerminalProfile(
                     container.name, self._get_command(container.name)
                 )
-                self.configuration.add_profile(
-                    container_profile, self.connector_friendly_name
+
+                self.connector_event_handler(
+                    ConnectorEvent(
+                        connector_friendly_name=self.connector_friendly_name,
+                        event_type=ConnectorEventTypes.ADD_PROFILE,
+                        terminal_profile=terminal_profile,
+                        event=container.name,
+                    )
                 )
 
             # Loop over Docker events until terminated
@@ -78,6 +94,9 @@ class DockerConnector(BaseConnector):
                     break
                 logging.debug("Docker event: %s", str(event))
                 self._handle_docker_event(event)
+
+            # close the docker client.
+            # If we reach this point, it means that the thread is terminating
             docker_client.close()
         except Exception as e:
             if not isinstance(e, docker.errors.DockerException) and not isinstance(

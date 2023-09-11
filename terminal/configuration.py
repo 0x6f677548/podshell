@@ -6,18 +6,10 @@ class TerminalProfile:
 
     def __init__(self,
                  name: str,
-                 commandline: str,
-                 guid: str = None):
+                 commandline: str):
         self.name = name
         self.commandline = commandline
-        if guid is None:
-            self.guid = f"{{{uuid4()}}}"
-        # fix guid if it's not in the correct format
-        elif not guid.startswith("{"):
-            self.guid = f"{{{guid}}}"
-        else:
-            self.guid = guid
-        self.type = type
+        self.guid = f"{{{uuid4()}}}"
 
     def __str__(self):
         return f"TerminalProfile(name={self.name}, commandline={self.commandline}, guid={self.guid})"
