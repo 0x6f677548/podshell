@@ -5,22 +5,23 @@ from terminal import configuration
 
 
 class DockerConnector(BaseConnector):
+    '''A connector that subscribes to Docker events '''
     def __init__(
         self,
-        configuration: configuration.BaseConfiguration,
-        f_handle_event: callable([ConnectorEvent, None]) = lambda _: None,
+        connector_event_handler: callable([ConnectorEvent, None]),
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
     ):
+        '''Initializes the DockerConnector.'''
         super().__init__(
             connector_friendly_name="Docker",
-            configuration=configuration,
-            f_handle_event=f_handle_event,
+            connector_event_handler=connector_event_handler,
         )
         self.docker_client = docker_client
         self.shell_command = shell_command
 
     def health_check(self) -> bool:
+        '''Checks if the Docker daemon is running.'''
         docker_client = self._get_docker_client()
         return docker_client.ping()
 

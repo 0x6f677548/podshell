@@ -1,4 +1,5 @@
 import logging
+import os
 from terminal import windowsterminal
 from pod.docker import DockerConnector
 from pod.ssh import SSHConnector
@@ -10,7 +11,9 @@ logger = logging.getLogger(__name__)
 def handle_event(connector_event: ConnectorEvent):
     print(connector_event.event_type, connector_event.event)
 
-    logger.info(f"Event: {connector_event.event_type}, {connector_event.event}, {connector_event.terminal_profile}")
+    logger.info(
+        f"Event: {connector_event.event_type}, {connector_event.event}, {connector_event.terminal_profile}"
+    )
 
     if (
         connector_event.event_type == ConnectorEventTypes.STARTING
@@ -32,17 +35,19 @@ def handle_event(connector_event: ConnectorEvent):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     terminal_configuration = windowsterminal.Configuration()
+    
     docker_connector = DockerConnector(
-        configuration=terminal_configuration,
-        f_handle_event=handle_event,
+        connector_event_handler=handle_event,
         shell_command="/bin/bash",
     )
     docker_connector.start()
 
-    # ssh_connector = SSHConnector(configuration=terminal_configuration,
-    #                             ssh_config_file=os.path.expanduser("~/.ssh/config"))
-    #
-    # ssh_connector.start()
+    ssh_connector = SSHConnector(
+        connector_event_handler=handle_event,
+        ssh_config_file=os.path.expanduser(os.path.join("~", ".ssh", "config"))
+    )
+
+    ssh_connector.start()
     input("Press Enter to continue...")
     docker_connector.stop()
-    # ssh_connector.stop()
+    ssh_connector.stop()

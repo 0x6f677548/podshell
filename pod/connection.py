@@ -15,6 +15,7 @@ class ConnectorEventTypes(StrEnum):
 
 
 class ConnectorEvent:
+    '''Event that is sent to the connector event handler.'''
     def __init__(
         self,
         connector_friendly_name: str,
@@ -22,6 +23,7 @@ class ConnectorEvent:
         event: str,
         terminal_profile: configuration.TerminalProfile = None,
     ):
+        '''Creates a new instance of the ConnectorEvent class.'''
         self.event_type = event_type
         self.event = event
         self.connector_friendly_name = connector_friendly_name
@@ -29,27 +31,29 @@ class ConnectorEvent:
 
 
 class BaseConnector(threading.Thread):
+    '''Base class for all connectors.'''
     _logger = logging.getLogger(__name__)
 
     def __init__(
         self,
         connector_friendly_name: str,
-        configuration: configuration.BaseConfiguration,
-        f_handle_event: callable([ConnectorEvent, None]) = lambda _: None,
+        connector_event_handler: callable([ConnectorEvent, None]),
     ):
+        '''Creates a new instance of the BaseConnector class.'''
         super().__init__(daemon=True)
         self.terminated = False
         self.connector_friendly_name = connector_friendly_name
-        self.configuration = configuration
-        self.connector_event_handler = f_handle_event
+        self.connector_event_handler = connector_event_handler
 
     def _run(self):
         raise NotImplementedError()
 
     def health_check(self) -> bool:
+        '''Checks if the connector is healthy.'''
         raise NotImplementedError()
 
     def run(self):
+        '''Runs the connector. This method should not be called directly. Use the start method instead.'''
 
         # call the event handler signaling that the connector is starting
         self.connector_event_handler(
@@ -98,6 +102,7 @@ class BaseConnector(threading.Thread):
                 time.sleep(sleep_time)
 
     def stop(self, timeout: float = 1):
+        '''Stops the connector.'''
 
         # call the event handler signaling that the connector is stopping
         self.connector_event_handler(
