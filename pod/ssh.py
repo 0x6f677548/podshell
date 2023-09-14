@@ -81,7 +81,7 @@ class SSHConnector(BaseConnector):
                                 ConnectorEvent(
                                     connector_friendly_name=self.connector_friendly_name,
                                     event_type=ConnectorEventTypes.ADD_PROFILE,
-                                    event=profile,
+                                    event=terminal_profile,
                                     terminal_profile=terminal_profile,
                                 )
                             )
