@@ -23,12 +23,12 @@ class SSHConnector(BaseConnector):
     def __init__(
         self,
         connector_event_handler: callable([ConnectorEvent, None]),
-        ssh_config_file: str = None,
+        ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
     ):
         '''Initializes the SSHConnector.'''
         super().__init__(
-            connector_friendly_name="SSH",
+            name="SSH",
             connector_event_handler=connector_event_handler,
         )
 
@@ -79,7 +79,7 @@ class SSHConnector(BaseConnector):
                     # call the event handler signaling that a profile has been added
                     self.connector_event_handler(
                                 ConnectorEvent(
-                                    connector_friendly_name=self.connector_friendly_name,
+                                    connector_name=self.name,
                                     event_type=ConnectorEventTypes.ADD_PROFILE,
                                     event=terminal_profile,
                                     terminal_profile=terminal_profile,
@@ -98,9 +98,9 @@ class SSHConnector(BaseConnector):
                     # this is actually a restart since the config file has changed
                     self.connector_event_handler(
                         ConnectorEvent(
-                            connector_friendly_name=self.connector_friendly_name,
+                            connector_name=self.name,
                             event_type=ConnectorEventTypes.STARTING,
-                            event=f"{self.connector_friendly_name} connector starting",
+                            event=f"{self.name} connector starting",
                         )
                     )
 

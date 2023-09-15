@@ -14,16 +14,24 @@ class DockerConnector(BaseConnector):
     ):
         '''Initializes the DockerConnector.'''
         super().__init__(
-            connector_friendly_name="Docker",
+            name="Docker",
             connector_event_handler=connector_event_handler,
         )
         self.docker_client = docker_client
         self.shell_command = shell_command
 
     def health_check(self) -> bool:
-        '''Checks if the Docker daemon is running.'''
-        docker_client = self._get_docker_client()
-        return docker_client.ping()
+        '''Checks if the Docker daemon is running.
+        It encapsulates the call to the Docker daemon in a try/except block.
+        Returns:
+            True if the Docker daemon is running, False otherwise.
+        '''
+        try:
+            docker_client = self._get_docker_client()
+            docker_client.ping()
+            return True
+        except Exception:
+            return False
 
     def _get_command(self, container_name):
         return f"docker exec -it {container_name} {self.shell_command}"
@@ -58,7 +66,7 @@ class DockerConnector(BaseConnector):
             # call the event handler signaling that a container has been added or removed
             self.connector_event_handler(
                 ConnectorEvent(
-                    connector_friendly_name=self.connector_friendly_name,
+                    connector_name=self.name,
                     event_type=ConnectorEventTypes.ADD_PROFILE
                     if event["Action"] == "start"
                     else ConnectorEventTypes.REMOVE_PROFILE,
@@ -79,7 +87,7 @@ class DockerConnector(BaseConnector):
 
                 self.connector_event_handler(
                     ConnectorEvent(
-                        connector_friendly_name=self.connector_friendly_name,
+                        connector_name=self.name,
                         event_type=ConnectorEventTypes.ADD_PROFILE,
                         terminal_profile=terminal_profile,
                         event=container.name,

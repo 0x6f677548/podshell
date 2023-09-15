@@ -18,7 +18,7 @@ class ConnectorEvent:
     '''Event that is sent to the connector event handler.'''
     def __init__(
         self,
-        connector_friendly_name: str,
+        connector_name: str,
         event_type: ConnectorEventTypes,
         event: str,
         terminal_profile: configuration.TerminalProfile = None,
@@ -26,23 +26,29 @@ class ConnectorEvent:
         '''Creates a new instance of the ConnectorEvent class.'''
         self.event_type = event_type
         self.event = event
-        self.connector_friendly_name = connector_friendly_name
+        self.connector_name = connector_name
         self.terminal_profile = terminal_profile
 
 
 class BaseConnector(threading.Thread):
-    '''Base class for all connectors.'''
+    '''Base class for all connectors.
+    A connector is a thread that runs in the background and communicates with 
+    a pod service or a way to connect to a container, pod or shell
+    Connectors should have unique names, like "SSH" or "Docker".
+    When inheriting from this class, the _run method should be overridden.
+    '''
+
     _logger = logging.getLogger(__name__)
 
     def __init__(
         self,
-        connector_friendly_name: str,
+        name: str,
         connector_event_handler: callable([ConnectorEvent, None]),
     ):
         '''Creates a new instance of the BaseConnector class.'''
         super().__init__(daemon=True)
         self.terminated = False
-        self.connector_friendly_name = connector_friendly_name
+        self.name = name
         self.connector_event_handler = connector_event_handler
 
     def _run(self):
@@ -58,9 +64,9 @@ class BaseConnector(threading.Thread):
         # call the event handler signaling that the connector is starting
         self.connector_event_handler(
             ConnectorEvent(
-                connector_friendly_name=self.connector_friendly_name,
+                connector_name=self.name,
                 event_type=ConnectorEventTypes.STARTING,
-                event=f"{self.connector_friendly_name} connector starting",
+                event=f"{self.name} connector starting",
             )
         )
         retry_count = 0
@@ -72,29 +78,29 @@ class BaseConnector(threading.Thread):
                     # call the event handler signaling that the connector is healthy
                     self.connector_event_handler(
                         ConnectorEvent(
-                            connector_friendly_name=self.connector_friendly_name,
+                            connector_name=self.name,
                             event_type=ConnectorEventTypes.HEALTHY,
-                            event=f"{self.connector_friendly_name} connector healthy",
+                            event=f"{self.name} connector healthy",
                         )
                     )
 
                 self._run()
             except Exception as e:
                 self._logger.warning(
-                    f"{self.connector_friendly_name} connector exception", exc_info=e
+                    f"{self.name} connector exception", exc_info=e
                 )
                 retry_count += 1
                 sleep_time = 5
                 if retry_count > 12:
-                    event = f"{self.connector_friendly_name} connector error, too many retries, waiting 30 seconds..."
+                    event = f"{self.name} connector error, too many retries, waiting 30 seconds..."
                     sleep_time = 30
                 else:
-                    event = f"{self.connector_friendly_name} connector error, waiting 5 seconds..."
+                    event = f"{self.name} connector error, waiting 5 seconds..."
 
                 # call the event handler signaling that the connector is unhealthy and waiting to retry
                 self.connector_event_handler(
                     ConnectorEvent(
-                        connector_friendly_name=self.connector_friendly_name,
+                        connector_name=self.name,
                         event_type=ConnectorEventTypes.WARNING,
                         event=event,
                     )
@@ -107,9 +113,9 @@ class BaseConnector(threading.Thread):
         # call the event handler signaling that the connector is stopping
         self.connector_event_handler(
             ConnectorEvent(
-                connector_friendly_name=self.connector_friendly_name,
+                connector_name=self.name,
                 event_type=ConnectorEventTypes.STOPPING,
-                event=f"{self.connector_friendly_name} connector stopping"
+                event=f"{self.name} connector stopping"
             )
         )
         self.terminated = True

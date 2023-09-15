@@ -1,8 +1,9 @@
 import logging
-import os
 from terminal import windowsterminal
 from pod.docker import DockerConnector
 from pod.ssh import SSHConnector
+from pod.connection import BaseConnector as PodBaseConnector
+from terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
 from pod.connection import ConnectorEvent, ConnectorEventTypes
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,16 +29,22 @@ class LogWindow(QWidget):
         self.setLayout(layout)
 
     def append_log(self, message):
+        event_date = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        message = f"{event_date} {message}"
         self.log_text.append(message)
 
 
 class App:
-    ssh_connector = None
-    docker_connector = None
+    pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
+    terminal_configurator_types: list[TerminalBaseConfigurator] = [windowsterminal.WindowsTerminalConfigurator]
+    pod_connectors = {}
+    terminal_configurators = {}
+    terminal_actions = []
+    pod_actions = []
+
     logger = logging.getLogger(__name__)
 
     def __init__(self):
-        self.terminal_configuration = windowsterminal.Configuration()
         self.qapp = QApplication([])
         self.qapp.setQuitOnLastWindowClosed(False)
 
@@ -48,17 +55,18 @@ class App:
         self.tray = QSystemTrayIcon()
         self.tray.setIcon(icon)
         self.tray.setVisible(True)
-
-        # Creating the options
         self.menu = QMenu()
-        self.ssh_option = QAction(
-            "SSH", triggered=self.toggle_ssh, checkable=True, checked=True
-        )
-        self.menu.addAction(self.ssh_option)
-        self.docker_option = QAction(
-            "Docker", triggered=self.toggle_docker, checkable=True, checked=True
-        )
-        self.menu.addAction(self.docker_option)
+        self.log_window = LogWindow()
+
+        self.add_terminal_configurator_actions()
+        # Adding a separator
+        self.menu.addSeparator()
+
+        self.add_pod_connector_actions()
+
+        # Adding a separator
+        self.menu.addSeparator()
+
         self.show_log_action = QAction("Show Log", triggered=self.show_log)
         self.menu.addAction(self.show_log_action)
 
@@ -73,42 +81,139 @@ class App:
         # Adding options to the System Tray
         self.tray.setContextMenu(self.menu)
 
-        self.log_window = LogWindow()
+    def add_pod_connector_actions(self):
+        '''Adds the pod connectors to the menu.
+        The pod connectors are added to the menu as checkable actions.
+        Checked actions are enabled if the pod connector is available.
+        '''
 
-    def toggle_ssh(self):
-        if self.ssh_option.isChecked():
-            self.ssh_connector = self._get_ssh_connector()
-            self.ssh_connector.start()
-        else:
-            self.ssh_connector.stop()
+        for pod_connector_type in self.pod_connector_types:
+            pod_connector = pod_connector_type(
+                connector_event_handler=self.handle_event
+            )
 
-    def toggle_docker(self):
-        if self.docker_option.isChecked():
-            self.docker_connector = self._get_docker_connector()
-            self.docker_connector.start()
-        else:
-            self.docker_connector.stop()
+            self.logger.debug(f"Adding {pod_connector.name} to the menu")
+            # add  the pod connector to the dict  of available connectors
+            self.pod_connectors[pod_connector.name] = pod_connector
+
+            def on_trigger(
+                checked,
+                pod_connector=pod_connector,
+                pod_connector_type=pod_connector_type,
+            ):
+                '''Triggered when the user clicks on the pod connector action.'''
+                self.logger.info(
+                    f"Trigger pod connector {pod_connector}. State: {checked}"
+                )
+                if checked:
+                    # we'll create a new instance of the pod connector
+                    # this is needed because the pod connector is a thread
+                    # and we can't restart a thread
+                    pod_connector = pod_connector_type(
+                        connector_event_handler=self.handle_event
+                    )
+                    pod_connector.start()
+                    self.pod_connectors[pod_connector.name] = pod_connector
+                else:
+                    pod_connector.stop()
+
+            pod_connector_available = pod_connector.health_check()
+            # adds the pod connector to the menu (as a checkable action)
+            pod_action = QAction(
+                pod_connector.name,
+                triggered=on_trigger,
+                checkable=True,
+                checked=pod_connector_available,
+            )
+            self.pod_actions.append(pod_action)
+            # start the pod connector if it's available (health check passed)
+            if pod_connector_available:
+                pod_connector.start()
+
+        self.menu.addActions(self.pod_actions)
+
+    def add_terminal_configurator_actions(self):
+        '''Adds the terminal configurators to the menu.
+        The terminal configurators are added to the menu as checkable actions.
+        Checked actions are enabled if the terminal connector is available.
+        '''
+        for terminal_configurator_type in self.terminal_configurator_types:
+            terminal_configurator = terminal_configurator_type()
+            self.logger.debug(f"Adding {terminal_configurator.name} to the menu")
+
+            # add  the terminal connector to the dict of available connectors
+            self.terminal_configurators[terminal_configurator.name] = terminal_configurator
+
+            def on_trigger(
+                checked,
+                terminal_configurator=terminal_configurator,
+                terminal_configurator_type=terminal_configurator_type,
+            ):
+                '''Triggered when the user clicks on the terminal connector action.'''
+                if checked:
+                    self.log_window.append_log(
+                        f"(ENABLED) {terminal_configurator.name} connector"
+                    )
+                    terminal_configurator = terminal_configurator_type()
+                    terminal_configurator.enabled = True
+                    self.terminal_configurators[
+                        terminal_configurator.name
+                    ] = terminal_configurator
+                    # since a new terminal connector has been added, we need to restart the pod connectors
+                    # otherwise the new terminal connector won't show the connections to the pods
+                    self._restart_alive_pod_connectors()
+                else:
+                    self.log_window.append_log(
+                        f"(DISABLED) {terminal_configurator.name} connector"
+                    )
+                    terminal_configurator.enabled = False
+                    # if the terminal connector is disabled, we need to remove the groups from the terminal connector
+                    # otherwise the terminal connector will show the connections to the pods
+                    self._remove_alive_pod_connectors_from_terminal_configurator(
+                        terminal_configurator
+                    )
+            is_available = terminal_configurator_type.is_available()
+            # add the terminal connector to the menu
+            terminal_action = QAction(
+                terminal_configurator.name,
+                triggered=on_trigger,
+                checkable=True,
+                checked=is_available,
+            )
+            self.terminal_actions.append(terminal_action)
+            if is_available:
+                terminal_configurator.enabled = True
+
+        self.menu.addActions(self.terminal_actions)
 
     def show_log(self):
         self.log_window.show()
 
-    def _get_docker_connector(self):
-        return DockerConnector(
-            connector_event_handler=self.handle_event,
-            shell_command="/bin/bash",
-        )
+    def _get_enabled_terminal_configurator(self) -> list[TerminalBaseConfigurator]:
+        return [
+            terminal_configurator
+            for terminal_configurator in self.terminal_configurators.values()
+            if terminal_configurator.enabled
+        ]
 
-    def _get_ssh_connector(self):
-        return SSHConnector(
-            connector_event_handler=self.handle_event,
-            ssh_config_file=os.path.expanduser(os.path.join("~", ".ssh", "config")),
-        )
+    def _restart_alive_pod_connectors(self):
+        for pod_connector in self.pod_connectors.values():
+            if pod_connector.is_alive():
+                pod_connector.stop()
+                pod_connector = pod_connector.__class__(
+                    connector_event_handler=self.handle_event
+                )
+                self.pod_connectors[pod_connector.name] = pod_connector
+                pod_connector.start()
+
+    def _remove_alive_pod_connectors_from_terminal_configurator(self, terminal_configurator):
+        for pod_connector in self.pod_connectors.values():
+            if pod_connector.is_alive():
+                terminal_configurator.remove_group(pod_connector.name)
 
     def handle_event(self, connector_event: ConnectorEvent):
-        # date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        event_date = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
         self.log_window.append_log(
-            f"{event_date} ({connector_event.event_type}) {connector_event.event}"
+            f"({connector_event.event_type}) {connector_event.event}"
         )
 
         self.logger.info(
@@ -128,41 +233,40 @@ class App:
             elif connector_event.event_type == ConnectorEventTypes.WARNING:
                 self.tray.setIcon(QIcon("icon_working.png"))
 
-            # remove profiles from the configuration
-            self.terminal_configuration.remove_group(
-                connector_event.connector_friendly_name
-            )
+            for terminal_configurator in self._get_enabled_terminal_configurator():
+                terminal_configurator.remove_group(connector_event.connector_name)
+
         elif connector_event.event_type == ConnectorEventTypes.ADD_PROFILE:
             self.tray.setIcon(QIcon("icon_working.png"))
             # add profile to the configuration
-            self.terminal_configuration.add_profile(
-                connector_event.terminal_profile,
-                connector_event.connector_friendly_name,
-            )
+            # update terminal connectors with the new configuration
+            for terminal_configurator in self._get_enabled_terminal_configurator():
+                terminal_configurator.add_profile(
+                    connector_event.terminal_profile,
+                    connector_event.connector_name,
+                )
             self.tray.setIcon(QIcon("icon_on.png"))
         elif connector_event.event_type == ConnectorEventTypes.REMOVE_PROFILE:
             self.tray.setIcon(QIcon("icon_working.png"))
             # remove profile from the configuration
-            self.terminal_configuration.remove_profile(
-                connector_event.terminal_profile.name
-            )
+            for terminal_configurator in self._get_enabled_terminal_configurator():
+                terminal_configurator.remove_profile(connector_event.terminal_profile.name)
             self.tray.setIcon(QIcon("icon_on.png"))
         elif connector_event.event_type == ConnectorEventTypes.HEALTHY:
             # update the icon
             self.tray.setIcon(QIcon("icon_on.png"))
 
     def run(self):
-        self.terminal_configuration.backup()
-        self.toggle_ssh()
-        self.toggle_docker()
+        # //TODO: add a way to save the terminal configuration
+        # self.terminal_configuration.backup()
 
         self.qapp.exec()
-        if not self.ssh_connector.terminated:
-            self.ssh_connector.stop()
-        if not self.docker_connector.terminated:
-            self.docker_connector.stop()
+
+        for pod_connector in self.pod_connectors.values():
+            if pod_connector.is_alive():
+                pod_connector.stop()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     App().run()

@@ -5,16 +5,25 @@ import re
 from datetime import datetime, timedelta
 import json
 import logging
-from terminal.configuration import BaseConfiguration, TerminalProfile
+from terminal.configuration import BaseConfigurator, TerminalProfile
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
 
-class Configuration(BaseConfiguration):
+class WindowsTerminalConfigurator(BaseConfigurator):
     """Configuration class for Windows Terminal"""
 
     @staticmethod
+    def is_available() -> bool:
+        '''Returns true if this terminal is installed/available.'''
+        return WindowsTerminalConfigurator._get_settings_file_path() is not None
+
+    @staticmethod
     def _get_settings_file_path() -> str:
+        '''
+        Returns the path to the settings.json file for Windows Terminal
+        Returns None if the settings.json file is not found
+        '''
         # from https://learn.microsoft.com/en-us/windows/terminal/install#settings-json-file
         # Terminal (stable / general release):
         #  %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
@@ -79,28 +88,30 @@ class Configuration(BaseConfiguration):
                 .decode("utf-8")
                 .strip()
             )
+            # Get the path to the settings.json file
+            settings_file_path = os.path.join(
+                os.environ["LOCALAPPDATA"],
+                "packages",
+                package_family_name,
+                "LocalState",
+                "settings.json")
+
+            if file_exists(settings_file_path):
+                return settings_file_path
+
         except subprocess.CalledProcessError as e:
             raise Exception(
                 "Windows Terminal settings file not found"
                 "and package family name could not be determined"
             ) from e
 
-        # Get the path to the settings.json file
-        settings_file_path = os.path.join(
-            os.environ["LOCALAPPDATA"],
-            "packages",
-            package_family_name,
-            "LocalState",
-            "settings.json",
-        )
-        if not os.path.exists(settings_file_path):
-            raise Exception("Windows Terminal settings file not found")
-
-        return settings_file_path
+        # if we get here, the settings.json file was not found
+        return None
 
     def __init__(self, settings_file_path: str = _get_settings_file_path()):
         '''Initializes a new instance of the Configuration class'''
         self.settings_file_path = settings_file_path
+        self.name = "Windows Terminal"
 
     # region group management
 

@@ -15,8 +15,16 @@ class TerminalProfile:
         return f"TerminalProfile(name={self.name}, commandline={self.commandline}, guid={self.guid})"
 
 
-class BaseConfiguration:
-    '''Base class for terminal configurations. This class should not be used directly.'''
+class BaseConfigurator:
+    '''Base class for terminal configurators. This class should not be used directly.'''
+    name = "BaseConfigurator"
+
+    enabled = False
+
+    @staticmethod
+    def is_available() -> bool:
+        '''Returns true if this terminal is installed/available.'''
+        raise NotImplementedError()
 
     def add_profile(self, profile: TerminalProfile, group_name: str = None) -> None:
         '''Add a profile to the configuration. If group_name is not None, the profile will be added to the group.'''
