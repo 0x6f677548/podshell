@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QAction
 import datetime
-import icon_rc
+import icon_rc  # noqa: F401
 
 
 class LogWindow(QWidget):
