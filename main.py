@@ -150,10 +150,13 @@ class App:
                 terminal_configurator_type=terminal_configurator_type,
             ):
                 '''Triggered when the user clicks on the terminal connector action.'''
+
+                status = "ENABLE" if checked else "DISABLE"
+                log_message = f"({status}) {terminal_configurator.name} connector"
+                self.log_window.append_log(log_message)
+                self.logger.info(log_message)
+
                 if checked:
-                    self.log_window.append_log(
-                        f"(ENABLED) {terminal_configurator.name} connector"
-                    )
                     terminal_configurator = terminal_configurator_type()
                     terminal_configurator.enabled = True
                     self.terminal_configurators[
@@ -163,9 +166,6 @@ class App:
                     # otherwise the new terminal connector won't show the connections to the pods
                     self._restart_alive_pod_connectors()
                 else:
-                    self.log_window.append_log(
-                        f"(DISABLED) {terminal_configurator.name} connector"
-                    )
                     terminal_configurator.enabled = False
                     # if the terminal connector is disabled, we need to remove the groups from the terminal connector
                     # otherwise the terminal connector will show the connections to the pods
@@ -268,5 +268,5 @@ class App:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     App().run()
