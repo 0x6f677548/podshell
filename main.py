@@ -15,13 +15,15 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QAction
 import datetime
+import icon_rc
 
 
 class LogWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Log Window")
-        self.setWindowIcon(QIcon("icon_on.png"))
+        icon = QIcon(":/images/icon_on.png")
+        self.setWindowIcon(icon)
         self.setGeometry(100, 100, 400, 300)
         layout = QVBoxLayout()
         self.log_text = QTextEdit(self)
@@ -49,7 +51,7 @@ class App:
         self.qapp.setQuitOnLastWindowClosed(False)
 
         # Adding an icon
-        icon = QIcon("icon_on.png")
+        icon = QIcon(":/images/icon_on.png")
 
         # Adding item on the menu bar
         self.tray = QSystemTrayIcon()
@@ -227,17 +229,17 @@ class App:
         ):
             # update the icon
             if connector_event.event_type == ConnectorEventTypes.STARTING:
-                self.tray.setIcon(QIcon("icon_working.png"))
+                self.tray.setIcon(QIcon(":/images/icon_working.png"))
             elif connector_event.event_type == ConnectorEventTypes.STOPPING:
-                self.tray.setIcon(QIcon("icon_off.png"))
+                self.tray.setIcon(QIcon(":/images/icon_off.png"))
             elif connector_event.event_type == ConnectorEventTypes.WARNING:
-                self.tray.setIcon(QIcon("icon_working.png"))
+                self.tray.setIcon(QIcon(":/images/icon_working.png"))
 
             for terminal_configurator in self._get_enabled_terminal_configurator():
                 terminal_configurator.remove_group(connector_event.connector_name)
 
         elif connector_event.event_type == ConnectorEventTypes.ADD_PROFILE:
-            self.tray.setIcon(QIcon("icon_working.png"))
+            self.tray.setIcon(QIcon(":/images/icon_working.png"))
             # add profile to the configuration
             # update terminal connectors with the new configuration
             for terminal_configurator in self._get_enabled_terminal_configurator():
@@ -245,16 +247,16 @@ class App:
                     connector_event.terminal_profile,
                     connector_event.connector_name,
                 )
-            self.tray.setIcon(QIcon("icon_on.png"))
+            self.tray.setIcon(QIcon(":/images/icon_on.png"))
         elif connector_event.event_type == ConnectorEventTypes.REMOVE_PROFILE:
-            self.tray.setIcon(QIcon("icon_working.png"))
+            self.tray.setIcon(QIcon(":/images/icon_working.png"))
             # remove profile from the configuration
             for terminal_configurator in self._get_enabled_terminal_configurator():
                 terminal_configurator.remove_profile(connector_event.terminal_profile.name)
-            self.tray.setIcon(QIcon("icon_on.png"))
+            self.tray.setIcon(QIcon(":/images/icon_on.png"))
         elif connector_event.event_type == ConnectorEventTypes.HEALTHY:
             # update the icon
-            self.tray.setIcon(QIcon("icon_on.png"))
+            self.tray.setIcon(QIcon(":/images/icon_on.png"))
 
     def run(self):
         # //TODO: add a way to save the terminal configuration
