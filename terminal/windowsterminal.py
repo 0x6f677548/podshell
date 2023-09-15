@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from terminal.configuration import BaseConfigurator, TerminalProfile
+import threading
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
@@ -112,6 +113,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         '''Initializes a new instance of the Configuration class'''
         self.settings_file_path = settings_file_path
         self.name = "Windows Terminal"
+        self.lock = threading.Lock()
 
     # region group management
 
@@ -165,24 +167,25 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def add_profiles(self, profiles: list[TerminalProfile], group_name: str = None) -> None:
         '''Adds the specified profiles to the settings.json file'''
-        settings = self._get_settings()
-        for profile in profiles:
-            # check if profile already exists. if not, add it
-            if not self._profile_exists(settings, profile.name):
-                settings["profiles"]["list"].append(
-                    {
-                        "name": profile.name,
-                        "commandline": profile.commandline,
-                        "guid": profile.guid,
-                        "suppressApplicationTitle": True,
-                    }
-                )
-            elif _logger.isEnabledFor(logging.DEBUG):
-                _logger.debug(f"Profile {profile.name} already exists")
+        with self.lock:
+            settings = self._get_settings()
+            for profile in profiles:
+                # check if profile already exists. if not, add it
+                if not self._profile_exists(settings, profile.name):
+                    settings["profiles"]["list"].append(
+                        {
+                            "name": profile.name,
+                            "commandline": profile.commandline,
+                            "guid": profile.guid,
+                            "suppressApplicationTitle": True,
+                        }
+                    )
+                elif _logger.isEnabledFor(logging.DEBUG):
+                    _logger.debug(f"Profile {profile.name} already exists")
 
-        if group_name is not None:
-            self._upsert_group(settings, group_name, profiles)
-        self._save(settings)
+            if group_name is not None:
+                self._upsert_group(settings, group_name, profiles)
+            self._save(settings)
 
     # endregion
 
@@ -190,64 +193,66 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def remove_profiles(self, profile_names: list[str]) -> None:
         '''Removes the specified profiles from the settings.json file'''
-        settings = self._get_settings()
+        with self.lock:
+            settings = self._get_settings()
 
-        # remove all profiles from the list, but keep the guid of each profile for later
-        profile_guids = []
-        profiles_to_keep = []
-        for profile in settings["profiles"]["list"]:
-            if profile["name"] in profile_names:
-                profile_guids.append(profile["guid"])
-            else:
-                profiles_to_keep.append(profile)
+            # remove all profiles from the list, but keep the guid of each profile for later
+            profile_guids = []
+            profiles_to_keep = []
+            for profile in settings["profiles"]["list"]:
+                if profile["name"] in profile_names:
+                    profile_guids.append(profile["guid"])
+                else:
+                    profiles_to_keep.append(profile)
 
-        settings["profiles"]["list"] = profiles_to_keep
+            settings["profiles"]["list"] = profiles_to_keep
 
-        # check for all entries in all groups and remove them
-        for group in settings["newTabMenu"]:
-            if group.get("type") == "folder":
-                group["entries"] = [
-                    e
-                    for e in group["entries"]
-                    if e["type"] == "profile" and e["profile"] not in profile_guids
-                ]
+            # check for all entries in all groups and remove them
+            for group in settings["newTabMenu"]:
+                if group.get("type") == "folder":
+                    group["entries"] = [
+                        e
+                        for e in group["entries"]
+                        if e["type"] == "profile" and e["profile"] not in profile_guids
+                    ]
 
-        self._save(settings)
+            self._save(settings)
 
     # endregion
 
     # region remove group
     def remove_group(self, group_name: str) -> None:
         '''Removes the specified group from the settings.json file'''
-        settings = self._get_settings()
+        with self.lock:
+            settings = self._get_settings()
 
-        # keep the guid of each profile for later
-        profile_guids = []
+            # keep the guid of each profile for later
+            profile_guids = []
 
-        # remove all entries in the group
-        for group in settings["newTabMenu"]:
-            if group.get("type") == "folder" and group["name"] == group_name:
-                for entry in group["entries"]:
-                    if entry["type"] == "profile":
-                        profile_guids.append(entry["profile"])
+            # remove all entries in the group
+            for group in settings["newTabMenu"]:
+                if group.get("type") == "folder" and group["name"] == group_name:
+                    for entry in group["entries"]:
+                        if entry["type"] == "profile":
+                            profile_guids.append(entry["profile"])
 
-                group["entries"] = []
+                    group["entries"] = []
 
-        # remove all profiles from the list
-        settings["profiles"]["list"] = [
-            p for p in settings["profiles"]["list"] if p["guid"] not in profile_guids
-        ]
+            # remove all profiles from the list
+            settings["profiles"]["list"] = [
+                p for p in settings["profiles"]["list"] if p["guid"] not in profile_guids
+            ]
 
-        # remove all profile entries from all groups
-        for group in settings["newTabMenu"]:
-            if group.get("type") == "folder":
-                group["entries"] = [
-                    e
-                    for e in group["entries"]
-                    if e["type"] == "profile" and e["profile"] not in profile_guids
-                ]
+            # remove all profile entries from all groups
+            for group in settings["newTabMenu"]:
+                if group.get("type") == "folder":
+                    group["entries"] = [
+                        e
+                        for e in group["entries"]
+                        if e["type"] == "profile" and e["profile"] not in profile_guids
+                    ]
 
-        self._save(settings)
+            self._save(settings)
 
     # end region
 
