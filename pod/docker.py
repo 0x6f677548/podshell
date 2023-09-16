@@ -18,8 +18,8 @@ class DockerConnector(BaseConnector):
             name="Docker",
             event_handler=event_handler,
         )
-        self.docker_client = docker_client
-        self.shell_command = shell_command
+        self._docker_client = docker_client
+        self._shell_command = shell_command
 
     def health_check(self) -> bool:
         '''Checks if the Docker daemon is running.
@@ -35,13 +35,13 @@ class DockerConnector(BaseConnector):
             return False
 
     def _get_command(self, container_name):
-        return f"docker exec -it {container_name} {self.shell_command}"
+        return f"docker exec -it {container_name} {self._shell_command}"
 
     def _get_docker_client(self):
-        if self.docker_client is None:
+        if self._docker_client is None:
             return docker.from_env()
         else:
-            return self.docker_client
+            return self._docker_client
 
     def _handle_docker_event(self, event):
         if self._logger.isEnabledFor(logging.DEBUG):
@@ -65,7 +65,7 @@ class DockerConnector(BaseConnector):
                 )
 
             # call the event handler signaling that a container has been added or removed
-            self.event_handler(
+            self._event_handler(
                 Event(
                     source_name=self.name,
                     event_type=EventType.ADD_PROFILE
@@ -86,7 +86,7 @@ class DockerConnector(BaseConnector):
                     container.name, self._get_command(container.name)
                 )
 
-                self.event_handler(
+                self._event_handler(
                     Event(
                         source_name=self.name,
                         event_type=EventType.ADD_PROFILE,

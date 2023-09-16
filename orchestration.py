@@ -8,22 +8,53 @@ from events import Event, EventType
 
 
 class Orchestrator:
+    """Represents the orchestrator between the pod connectors and the terminal configurators"""
     _pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
     _terminal_configurator_types: list[TerminalBaseConfigurator] = [
         windowsterminal.WindowsTerminalConfigurator
     ]
     # a dictionary (key: pod connector name, value: pod connector instance)
     pod_connectors: dict[str, PodBaseConnector] = {}
+    """A dictionary (key: pod connector name, value: pod connector instance)"""
 
     # a dictionary (key: terminal configurator name, value: terminal configurator instance)
     terminal_configurators: dict[str, TerminalBaseConfigurator] = {}
+    """A dictionary (key: terminal configurator name, value: terminal configurator instance)"""
 
     _logger = logging.getLogger(__name__)
 
     def __init__(self, event_handler: callable([Event, None])):
-        self.event_handler = event_handler
+        self._event_handler = event_handler
         self._init_terminal_configurators()
         self._init_pod_connectors()
+
+    def _init_terminal_configurators(self):
+        """Inits the terminal configurators list"""
+        for terminal_configurator_type in self._terminal_configurator_types:
+            terminal_configurator: TerminalBaseConfigurator = (
+                terminal_configurator_type()
+            )
+            self._logger.debug(
+                f"Adding {terminal_configurator.name} to the available terminal configurators"
+            )
+
+            # add  the terminal connector to the dict of available connectors
+            self.terminal_configurators[
+                terminal_configurator.name
+            ] = terminal_configurator
+
+    def _init_pod_connectors(self):
+        """Inits the pod connectors list"""
+        for pod_connector_type in self._pod_connector_types:
+            pod_connector: PodBaseConnector = pod_connector_type(
+                event_handler=self._handle_connector_event
+            )
+
+            self._logger.debug(
+                f"Adding {pod_connector.name} to the available pod connectors"
+            )
+            # add  the pod connector to the dict  of available connectors
+            self.pod_connectors[pod_connector.name] = pod_connector
 
     def trigger_terminal_configurator(
         self, terminal_configurator_name: str, enable: bool
@@ -34,7 +65,7 @@ class Orchestrator:
         if self._logger.isEnabledFor(logging.DEBUG):
             self._logger.debug(f"({status}) {event_message}")
 
-        self.event_handler(
+        self._event_handler(
             Event(
                 source_name=terminal_configurator_name,
                 event_type=EventType.STARTING if enable else EventType.STOPPING,
@@ -56,42 +87,6 @@ class Orchestrator:
 
         self._send_healthy_event(terminal_configurator_name)
 
-    def _send_healthy_event(self, source_name: str):
-        self.event_handler(
-            Event(
-                source_name=source_name,
-                event_type=EventType.HEALTHY,
-                event_message="Last operation completed successfully",
-            )
-        )
-
-    def _init_terminal_configurators(self):
-        """Inits the terminal configurators list"""
-        for terminal_configurator_type in self._terminal_configurator_types:
-            terminal_configurator: TerminalBaseConfigurator = (
-                terminal_configurator_type()
-            )
-            self._logger.debug(
-                f"Adding {terminal_configurator.name} to the available terminal configurators"
-            )
-
-            # add  the terminal connector to the dict of available connectors
-            self.terminal_configurators[
-                terminal_configurator.name
-            ] = terminal_configurator
-
-    def _start_pod_connector(self, pod_connector_name: str):
-        """Starts a pod connector by its name"""
-        self._logger.debug(f"Starting pod connector {pod_connector_name}")
-        pod_connector = self.pod_connectors[pod_connector_name]
-        if pod_connector.terminated:
-            # create a new instance of the same type of the pod connector
-            pod_connector = pod_connector.__class__(
-                event_handler=self._handle_connector_event
-            )
-            self.pod_connectors[pod_connector_name] = pod_connector
-        pod_connector.start()
-
     def trigger_pod_connector(self, pod_connector_name: str, enable: bool):
         """Triggers a pod connector by its name"""
         self._logger.debug(
@@ -105,19 +100,26 @@ class Orchestrator:
             self.pod_connectors[pod_connector_name].stop()
         self._send_healthy_event(pod_connector_name)
 
-    def _init_pod_connectors(self):
-        """Inits the pod connectors list"""
+    def _send_healthy_event(self, source_name: str):
+        self._event_handler(
+            Event(
+                source_name=source_name,
+                event_type=EventType.HEALTHY,
+                event_message="Last operation completed successfully",
+            )
+        )
 
-        for pod_connector_type in self._pod_connector_types:
-            pod_connector: PodBaseConnector = pod_connector_type(
+    def _start_pod_connector(self, pod_connector_name: str):
+        """Starts a pod connector by its name"""
+        self._logger.debug(f"Starting pod connector {pod_connector_name}")
+        pod_connector = self.pod_connectors[pod_connector_name]
+        if pod_connector.terminated:
+            # create a new instance of the same type of the pod connector
+            pod_connector = pod_connector.__class__(
                 event_handler=self._handle_connector_event
             )
-
-            self._logger.debug(
-                f"Adding {pod_connector.name} to the available pod connectors"
-            )
-            # add  the pod connector to the dict  of available connectors
-            self.pod_connectors[pod_connector.name] = pod_connector
+            self.pod_connectors[pod_connector_name] = pod_connector
+        pod_connector.start()
 
     def _restart_alive_pod_connectors(self):
         for pod_connector in self.pod_connectors.values():
@@ -145,7 +147,7 @@ class Orchestrator:
 
     def _handle_connector_event(self, event: Event):
         # notify event subscribers
-        self.event_handler(event)
+        self._event_handler(event)
 
         self._logger.debug(f"Event: {event.event_type}, {event.message}")
 
@@ -175,6 +177,7 @@ class Orchestrator:
             self._send_healthy_event(event.source_name)
 
     def stop(self):
+        """Stops all the pod connectors and terminal configurators"""
         for pod_connector in self.pod_connectors.values():
             if pod_connector.is_alive():
                 pod_connector.stop()
@@ -182,9 +185,13 @@ class Orchestrator:
             terminal_configurator.enabled = False
 
     def start(self):
+        """Starts all the pod connectors and terminal configurators.
+        It also backs up the terminal configurators.
+        """
+        for terminal_configurator in self.terminal_configurators.values():
+            if terminal_configurator.is_available():
+                terminal_configurator.backup()
+                terminal_configurator.enabled = True
         for pod_connector in self.pod_connectors.values():
             if pod_connector.health_check():
                 self._start_pod_connector(pod_connector.name)
-        for terminal_configurator in self.terminal_configurators.values():
-            if terminal_configurator.is_available():
-                terminal_configurator.enabled = True

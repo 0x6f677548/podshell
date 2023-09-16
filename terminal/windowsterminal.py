@@ -111,9 +111,9 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def __init__(self, settings_file_path: str = _get_settings_file_path()):
         '''Initializes a new instance of the Configuration class'''
-        self.settings_file_path = settings_file_path
+        self._settings_file_path = settings_file_path
+        self._lock = threading.Lock()
         self.name = "Windows Terminal"
-        self.lock = threading.Lock()
 
     # region group management
 
@@ -167,7 +167,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def add_profiles(self, profiles: list[TerminalProfile], group_name: str = None) -> None:
         '''Adds the specified profiles to the settings.json file'''
-        with self.lock:
+        with self._lock:
             settings = self._get_settings()
             for profile in profiles:
                 # check if profile already exists. if not, add it
@@ -193,7 +193,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def remove_profiles(self, profile_names: list[str]) -> None:
         '''Removes the specified profiles from the settings.json file'''
-        with self.lock:
+        with self._lock:
             settings = self._get_settings()
 
             # remove all profiles from the list, but keep the guid of each profile for later
@@ -223,7 +223,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
     # region remove group
     def remove_group(self, group_name: str) -> None:
         '''Removes the specified group from the settings.json file'''
-        with self.lock:
+        with self._lock:
             settings = self._get_settings()
 
             # keep the guid of each profile for later
@@ -258,24 +258,20 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def backup(self) -> None:
         """Backup the settings.json file and deletes backups longer than 7 days"""
-        backup_folder = (
-            "backup_folder"  # Change this to your desired backup folder path
-        )
-
-        # Create the backup folder if it doesn't exist
-        if not os.path.exists(backup_folder):
-            os.makedirs(backup_folder)
-
-        # Generate the backup file path
+        # Generate the backup file name
         backup_file_path = re.sub(
             r"\.json$",
             f".backup.{datetime.now().strftime('%Y%m%d%H%M%S')}.json",
-            self.settings_file_path,
+            self._settings_file_path,
         )
+        backup_folder = os.path.join(os.path.dirname(backup_file_path), "backup_folder")
+        # Create the backup folder if it doesn't exist
+        if not os.path.exists(backup_folder):
+            os.makedirs(backup_folder)
         # Copy the settings file to the backup location
         shutil.copy(
-            self.settings_file_path,
-            os.path.join(backup_folder, os.path.basename(backup_file_path)),
+            self._settings_file_path,
+            os.path.join(backup_folder, os.path.basename(backup_file_path))
         )
 
         # Delete backup files older than 7 days
@@ -289,11 +285,11 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def _save(self, settings) -> None:
         # Convert the settings object to JSON and write it to the file
-        with open(self.settings_file_path, "w") as settings_file:
+        with open(self._settings_file_path, "w") as settings_file:
             json.dump(settings, settings_file, indent=4)
 
     def _get_settings(self) -> dict:
         # Read the current JSON content
-        with open(self.settings_file_path, "r") as settings_file:
+        with open(self._settings_file_path, "r") as settings_file:
             current_settings = json.load(settings_file)
         return current_settings

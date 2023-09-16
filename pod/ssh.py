@@ -83,7 +83,7 @@ class SSHConnector(BaseConnector):
                     )
 
                     # call the event handler signaling that a profile has been added
-                    self.event_handler(
+                    self._event_handler(
                         Event(
                             source_name=self.name,
                             event_type=EventType.ADD_PROFILE,
@@ -101,7 +101,7 @@ class SSHConnector(BaseConnector):
                 if modified_on:
                     # call the event handler signaling that the connector is starting
                     # this is actually a restart since the config file has changed
-                    self.event_handler(
+                    self._event_handler(
                         Event(
                             connector_name=self.name,
                             event_type=EventType.STARTING,

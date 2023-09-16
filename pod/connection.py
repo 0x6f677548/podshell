@@ -30,7 +30,7 @@ class BaseConnector(threading.Thread):
         super().__init__(daemon=True)
         self.terminated = False
         self.name = name
-        self.event_handler = event_handler
+        self._event_handler = event_handler
 
     def _run(self):
         raise NotImplementedError()
@@ -43,7 +43,7 @@ class BaseConnector(threading.Thread):
         """Runs the connector. This method should not be called directly. Use the start method instead."""
 
         # call the event handler signaling that the connector is starting
-        self.event_handler(
+        self._event_handler(
             Event(
                 source_name=self.name,
                 event_type=EventType.STARTING,
@@ -62,7 +62,7 @@ class BaseConnector(threading.Thread):
                 event = f"{self.name} {error_message}, waiting 5 seconds..."
 
             # call the event handler signaling that the connector is unhealthy and waiting to retry
-            self.event_handler(
+            self._event_handler(
                 Event(
                     source_name=self.name,
                     event_type=EventType.WARNING,
@@ -77,7 +77,7 @@ class BaseConnector(threading.Thread):
                 if self.health_check():
                     retry_count = 0
                     # call the event handler signaling that the connector is healthy
-                    self.event_handler(
+                    self._event_handler(
                         Event(
                             source_name=self.name,
                             event_type=EventType.HEALTHY,
@@ -98,7 +98,7 @@ class BaseConnector(threading.Thread):
         self.terminated = True
 
         # call the event handler signaling that the connector is stopping
-        self.event_handler(
+        self._event_handler(
             Event(
                 source_name=self.name,
                 event_type=EventType.STOPPING,

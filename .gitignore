@@ -2,3 +2,6 @@
 .vscode/*
 .localtests/*
 *.pyc
+build/
+dist/
+PodShell.spec

@@ -27,114 +27,105 @@ class LogWindow(QWidget):
 
     def append_log(self, message):
         event_date = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        message = f"{event_date} {message}"
-        self.log_text.append(message)
+        self.log_text.append(f"{event_date} {message}")
 
 
 class App:
-    terminal_actions: list[QAction] = []
-    pod_actions: list[QAction] = []
-
+    """Represents the UI App"""
+    _terminal_actions: list[QAction] = []
+    _pod_actions: list[QAction] = []
     _logger = logging.getLogger(__name__)
 
     def __init__(self):
-        self.qapp = QApplication([])
-        self.qapp.setQuitOnLastWindowClosed(False)
+        self._qapp = QApplication([])
+        self._qapp.setQuitOnLastWindowClosed(False)
 
         # Adding an icon
         icon = QIcon(":/images/icon_on.png")
 
         # Adding item on the menu bar
-        self.tray = QSystemTrayIcon()
-        self.tray.setIcon(icon)
-        self.tray.setVisible(True)
-        self.menu = QMenu()
-        self.log_window = LogWindow()
-        self.orchestrator = Orchestrator(self.handle_event)
-        self.orchestrator.start()
+        self._tray = QSystemTrayIcon()
+        self._tray.setIcon(icon)
+        self._tray.setVisible(True)
+        self._menu = QMenu()
+        self._log_window = LogWindow()
 
-        self.add_terminal_configurator_actions()
-        # Adding a separator
-        self.menu.addSeparator()
+        # create the  orchestrator and start it
+        self._orchestrator = Orchestrator(self._handle_orchestrator_event)
+        self._orchestrator.start()
 
-        self.add_pod_connector_actions()
-
-        # Adding a separator
-        self.menu.addSeparator()
-
-        self.show_log_action = QAction("Show Log", triggered=self.show_log)
-        self.menu.addAction(self.show_log_action)
-
-        # Adding a separator
-        self.menu.addSeparator()
-
-        # To quit the app
-        self.quit_action = QAction("Quit")
-        self.quit_action.triggered.connect(self.qapp.quit)
-        self.menu.addAction(self.quit_action)
+        # adding terminal configurators and pod connectors to the menu
+        self._add_terminal_configurator_actions()
+        self._menu.addSeparator()
+        self._add_pod_connector_actions()
+        self._menu.addSeparator()
+        # Adding a show log action
+        self._show_log_action = QAction("Show Log", triggered=self.show_log)
+        self._menu.addAction(self._show_log_action)
+        self._menu.addSeparator()
+        # //TODO: add a enable/disable all action
+        # Adding a quit action
+        self._quit_action = QAction("Quit")
+        self._quit_action.triggered.connect(self._qapp.quit)
+        self._menu.addAction(self._quit_action)
 
         # Adding options to the System Tray
-        self.tray.setContextMenu(self.menu)
+        self._tray.setContextMenu(self._menu)
 
-    def add_pod_connector_actions(self):
-        """Adds the pod connectors to the menu.
-        The pod connectors are added to the menu as checkable actions.
+    def _add_pod_connector_actions(self):
+        """Adds the pod connectors to the menu as checkable actions.
         Checked actions are enabled if the pod connector is alive.
         """
 
-        for pod_connector in self.orchestrator.pod_connectors.values():
-            self._logger.debug(f"Adding {pod_connector.name} to the menu")
+        for pod_connector in self._orchestrator.pod_connectors.values():
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.debug(f"Adding {pod_connector.name} to the menu")
 
             def on_trigger(checked, pod_connector_name=pod_connector.name):
-                """Triggered when the user clicks on the pod connector action."""
-                self._logger.debug(
-                    f"Trigger pod connector {pod_connector_name}. State: {checked}"
-                )
-                self.orchestrator.trigger_pod_connector(pod_connector_name, checked)
+                self._orchestrator.trigger_pod_connector(pod_connector_name, checked)
 
             # adds the pod connector to the menu (as a checkable action)
-            pod_action = QAction(
-                pod_connector.name,
-                triggered=on_trigger,
-                checkable=True,
-                checked=pod_connector.is_alive(),
+            self._pod_actions.append(
+                QAction(
+                    pod_connector.name,
+                    triggered=on_trigger,
+                    checkable=True,
+                    checked=pod_connector.is_alive(),
+                )
             )
-            self.pod_actions.append(pod_action)
 
-        self.menu.addActions(self.pod_actions)
+        self._menu.addActions(self._pod_actions)
 
-    def add_terminal_configurator_actions(self):
-        """Adds the terminal configurators to the menu.
-        The terminal configurators are added to the menu as checkable actions.
+    def _add_terminal_configurator_actions(self):
+        """Adds the terminal configurators to the menu as checkable actions.
         Checked actions are enabled if the terminal connector is available.
         """
-        for terminal_configurator in self.orchestrator.terminal_configurators.values():
-            self._logger.debug(f"Adding {terminal_configurator.name} to the menu")
+        for terminal_configurator in self._orchestrator.terminal_configurators.values():
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.debug(f"Adding {terminal_configurator.name} to the menu")
 
             def on_trigger(
                 checked, terminal_configurator_name=terminal_configurator.name
             ):
-                """Triggered when the user clicks on the terminal connector action."""
-                self.orchestrator.trigger_terminal_configurator(
+                self._orchestrator.trigger_terminal_configurator(
                     terminal_configurator_name, checked
                 )
 
             # add the terminal connector to the menu
-            terminal_action = QAction(
-                terminal_configurator.name,
-                triggered=on_trigger,
-                checkable=True,
-                checked=terminal_configurator.enabled,
+            self._terminal_actions.append(
+                QAction(
+                    terminal_configurator.name,
+                    triggered=on_trigger,
+                    checkable=True,
+                    checked=terminal_configurator.enabled,
+                )
             )
-            self.terminal_actions.append(terminal_action)
-        self.menu.addActions(self.terminal_actions)
+        self._menu.addActions(self._terminal_actions)
 
     def show_log(self):
-        self.log_window.show()
+        self._log_window.show()
 
-    def handle_event(self, event: Event):
-        self.log_window.append_log(f"({event.event_type}) {event.message}")
-
+    def _handle_orchestrator_event(self, event: Event):
         self._logger.info(f"Event: {event.event_type}, {event.message}, {event.data}")
 
         # update the icon
@@ -144,21 +135,21 @@ class App:
             or event.event_type == EventType.ADD_PROFILE
             or event.event_type == EventType.REMOVE_PROFILE
         ):
-            self.tray.setIcon(QIcon(":/images/icon_working.png"))
+            self._tray.setIcon(QIcon(":/images/icon_working.png"))
         elif event.event_type == EventType.STOPPING:
-            self.tray.setIcon(QIcon(":/images/icon_off.png"))
+            self._tray.setIcon(QIcon(":/images/icon_off.png"))
         elif event.event_type == EventType.HEALTHY:
-            self.tray.setIcon(QIcon(":/images/icon_on.png"))
+            self._tray.setIcon(QIcon(":/images/icon_on.png"))
 
     def run(self):
         # //TODO: add a way to save the terminal configuration
         # self.terminal_configuration.backup()
 
-        self.qapp.exec()
-        self.orchestrator.stop()
-
+        self._qapp.exec()
+        self._orchestrator.stop()
 
 
 if __name__ == "__main__":
+    # we'll only log INFO messages when running in windowed mode
     logging.basicConfig(level=logging.INFO)
     App().run()
