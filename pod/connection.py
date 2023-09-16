@@ -1,34 +1,7 @@
 import time
 import threading
 import logging
-from enum import StrEnum
-import terminal.configuration as configuration
-
-
-class ConnectorEventTypes(StrEnum):
-    ADD_PROFILE = "ADD_PROFILE"
-    REMOVE_PROFILE = "REMOVE_PROFILE"
-    WARNING = "WARNING"
-    STARTING = "STARTING"
-    STOPPING = "STOPPING"
-    HEALTHY = "HEALTHY"
-
-
-class ConnectorEvent:
-    """Event that is sent to the connector event handler."""
-
-    def __init__(
-        self,
-        connector_name: str,
-        event_type: ConnectorEventTypes,
-        event: str,
-        terminal_profile: configuration.TerminalProfile = None,
-    ):
-        """Creates a new instance of the ConnectorEvent class."""
-        self.event_type = event_type
-        self.event = event
-        self.connector_name = connector_name
-        self.terminal_profile = terminal_profile
+from events import Event, EventType
 
 
 class BaseConnector(threading.Thread):
@@ -51,13 +24,13 @@ class BaseConnector(threading.Thread):
     def __init__(
         self,
         name: str,
-        connector_event_handler: callable([ConnectorEvent, None]),
+        event_handler: callable([Event, None]),
     ):
         """Creates a new instance of the BaseConnector class."""
         super().__init__(daemon=True)
         self.terminated = False
         self.name = name
-        self.connector_event_handler = connector_event_handler
+        self.event_handler = event_handler
 
     def _run(self):
         raise NotImplementedError()
@@ -70,11 +43,11 @@ class BaseConnector(threading.Thread):
         """Runs the connector. This method should not be called directly. Use the start method instead."""
 
         # call the event handler signaling that the connector is starting
-        self.connector_event_handler(
-            ConnectorEvent(
-                connector_name=self.name,
-                event_type=ConnectorEventTypes.STARTING,
-                event=f"{self.name} connector starting",
+        self.event_handler(
+            Event(
+                source_name=self.name,
+                event_type=EventType.STARTING,
+                event_message=f"{self.name} connector",
             )
         )
         retry_count = 0
@@ -89,11 +62,11 @@ class BaseConnector(threading.Thread):
                 event = f"{self.name} {error_message}, waiting 5 seconds..."
 
             # call the event handler signaling that the connector is unhealthy and waiting to retry
-            self.connector_event_handler(
-                ConnectorEvent(
-                    connector_name=self.name,
-                    event_type=ConnectorEventTypes.WARNING,
-                    event=event,
+            self.event_handler(
+                Event(
+                    source_name=self.name,
+                    event_type=EventType.WARNING,
+                    event_message=event,
                 )
             )
             time.sleep(sleep_time)
@@ -104,11 +77,11 @@ class BaseConnector(threading.Thread):
                 if self.health_check():
                     retry_count = 0
                     # call the event handler signaling that the connector is healthy
-                    self.connector_event_handler(
-                        ConnectorEvent(
-                            connector_name=self.name,
-                            event_type=ConnectorEventTypes.HEALTHY,
-                            event=f"{self.name} connector healthy",
+                    self.event_handler(
+                        Event(
+                            source_name=self.name,
+                            event_type=EventType.HEALTHY,
+                            event_message=f"{self.name} connector",
                         )
                     )
                     self._run()
@@ -125,11 +98,11 @@ class BaseConnector(threading.Thread):
         self.terminated = True
 
         # call the event handler signaling that the connector is stopping
-        self.connector_event_handler(
-            ConnectorEvent(
-                connector_name=self.name,
-                event_type=ConnectorEventTypes.STOPPING,
-                event=f"{self.name} connector stopping",
+        self.event_handler(
+            Event(
+                source_name=self.name,
+                event_type=EventType.STOPPING,
+                event_message=f"{self.name} connector",
             )
         )
         self.join(timeout)

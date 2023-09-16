@@ -1,21 +1,22 @@
 import logging
 import docker
-from pod.connection import BaseConnector, ConnectorEvent, ConnectorEventTypes
+from pod.connection import BaseConnector
 from terminal import configuration
+from events import Event, EventType
 
 
 class DockerConnector(BaseConnector):
     '''A connector that subscribes to Docker events '''
     def __init__(
         self,
-        connector_event_handler: callable([ConnectorEvent, None]),
+        event_handler: callable([Event, None]),
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
     ):
         '''Initializes the DockerConnector.'''
         super().__init__(
             name="Docker",
-            connector_event_handler=connector_event_handler,
+            event_handler=event_handler,
         )
         self.docker_client = docker_client
         self.shell_command = shell_command
@@ -64,14 +65,14 @@ class DockerConnector(BaseConnector):
                 )
 
             # call the event handler signaling that a container has been added or removed
-            self.connector_event_handler(
-                ConnectorEvent(
-                    connector_name=self.name,
-                    event_type=ConnectorEventTypes.ADD_PROFILE
+            self.event_handler(
+                Event(
+                    source_name=self.name,
+                    event_type=EventType.ADD_PROFILE
                     if event["Action"] == "start"
-                    else ConnectorEventTypes.REMOVE_PROFILE,
-                    terminal_profile=terminal_profile,
-                    event=container_name,
+                    else EventType.REMOVE_PROFILE,
+                    event_data=terminal_profile,
+                    event_message=container_name,
                 )
             )
 
@@ -85,12 +86,12 @@ class DockerConnector(BaseConnector):
                     container.name, self._get_command(container.name)
                 )
 
-                self.connector_event_handler(
-                    ConnectorEvent(
-                        connector_name=self.name,
-                        event_type=ConnectorEventTypes.ADD_PROFILE,
-                        terminal_profile=terminal_profile,
-                        event=container.name,
+                self.event_handler(
+                    Event(
+                        source_name=self.name,
+                        event_type=EventType.ADD_PROFILE,
+                        event_data=terminal_profile,
+                        event_message=container.name,
                     )
                 )
 

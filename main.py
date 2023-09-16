@@ -1,10 +1,5 @@
 import logging
-from terminal import windowsterminal
-from pod.docker import DockerConnector
-from pod.ssh import SSHConnector
-from pod.connection import BaseConnector as PodBaseConnector
-from terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
-from pod.connection import ConnectorEvent, ConnectorEventTypes
+from orchestration import Orchestrator, Event, EventType
 from PySide6.QtWidgets import (
     QApplication,
     QSystemTrayIcon,
@@ -37,20 +32,10 @@ class LogWindow(QWidget):
 
 
 class App:
-    pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
-    terminal_configurator_types: list[TerminalBaseConfigurator] = [
-        windowsterminal.WindowsTerminalConfigurator
-    ]
-    # a dictionary (key: pod connector name, value: pod connector instance)
-    pod_connectors: dict[str, PodBaseConnector] = {}
-
-    # a dictionary (key: terminal configurator name, value: terminal configurator instance)
-    terminal_configurators: dict[str, TerminalBaseConfigurator] = {}
-
     terminal_actions: list[QAction] = []
     pod_actions: list[QAction] = []
 
-    logger = logging.getLogger(__name__)
+    _logger = logging.getLogger(__name__)
 
     def __init__(self):
         self.qapp = QApplication([])
@@ -65,6 +50,8 @@ class App:
         self.tray.setVisible(True)
         self.menu = QMenu()
         self.log_window = LogWindow()
+        self.orchestrator = Orchestrator(self.handle_event)
+        self.orchestrator.start()
 
         self.add_terminal_configurator_actions()
         # Adding a separator
@@ -92,52 +79,27 @@ class App:
     def add_pod_connector_actions(self):
         """Adds the pod connectors to the menu.
         The pod connectors are added to the menu as checkable actions.
-        Checked actions are enabled if the pod connector is available.
+        Checked actions are enabled if the pod connector is alive.
         """
 
-        for pod_connector_type in self.pod_connector_types:
-            pod_connector: PodBaseConnector = pod_connector_type(
-                connector_event_handler=self.handle_event
-            )
+        for pod_connector in self.orchestrator.pod_connectors.values():
+            self._logger.debug(f"Adding {pod_connector.name} to the menu")
 
-            self.logger.debug(f"Adding {pod_connector.name} to the menu")
-            # add  the pod connector to the dict  of available connectors
-            self.pod_connectors[pod_connector.name] = pod_connector
-
-            def on_trigger(
-                checked,
-                pod_connector_name=pod_connector.name,
-                pod_connector_type=pod_connector_type,
-            ):
+            def on_trigger(checked, pod_connector_name=pod_connector.name):
                 """Triggered when the user clicks on the pod connector action."""
-                self.logger.debug(
+                self._logger.debug(
                     f"Trigger pod connector {pod_connector_name}. State: {checked}"
                 )
-                if checked:
-                    # we'll create a new instance of the pod connector
-                    # this is needed because the pod connector is a thread
-                    # and we can't restart a thread
-                    if self.pod_connectors[pod_connector_name].terminated:
-                        self.pod_connectors[pod_connector_name] = pod_connector_type(
-                            connector_event_handler=self.handle_event
-                        )
-                    self.pod_connectors[pod_connector_name].start()
-                else:
-                    self.logger.debug(f"Stopping pod connector {pod_connector_name}")
-                    self.pod_connectors[pod_connector_name].stop()
+                self.orchestrator.trigger_pod_connector(pod_connector_name, checked)
 
-            pod_connector_available = pod_connector.health_check()
             # adds the pod connector to the menu (as a checkable action)
             pod_action = QAction(
                 pod_connector.name,
                 triggered=on_trigger,
                 checkable=True,
-                checked=pod_connector_available,
+                checked=pod_connector.is_alive(),
             )
             self.pod_actions.append(pod_action)
-            # start the pod connector if it's available (health check passed)
-            if pod_connector_available:
-                pod_connector.start()
 
         self.menu.addActions(self.pod_actions)
 
@@ -146,129 +108,46 @@ class App:
         The terminal configurators are added to the menu as checkable actions.
         Checked actions are enabled if the terminal connector is available.
         """
-        for terminal_configurator_type in self.terminal_configurator_types:
-            terminal_configurator: TerminalBaseConfigurator = (
-                terminal_configurator_type()
-            )
-            self.logger.debug(f"Adding {terminal_configurator.name} to the menu")
-
-            # add  the terminal connector to the dict of available connectors
-            self.terminal_configurators[
-                terminal_configurator.name
-            ] = terminal_configurator
+        for terminal_configurator in self.orchestrator.terminal_configurators.values():
+            self._logger.debug(f"Adding {terminal_configurator.name} to the menu")
 
             def on_trigger(
-                checked,
-                terminal_configurator_name=terminal_configurator.name,
-                terminal_configurator_type=terminal_configurator_type,
+                checked, terminal_configurator_name=terminal_configurator.name
             ):
                 """Triggered when the user clicks on the terminal connector action."""
+                self.orchestrator.trigger_terminal_configurator(
+                    terminal_configurator_name, checked
+                )
 
-                status = "ENABLE" if checked else "DISABLE"
-                log_message = f"({status}) {terminal_configurator_name} connector"
-                self.log_window.append_log(log_message)
-                self.logger.info(log_message)
-
-                self.terminal_configurators[
-                    terminal_configurator_name
-                ].enabled = checked
-                if checked:
-                    # since a new terminal connector has been enabled, we need to restart the pod connectors
-                    # otherwise the new terminal connector won't show the connections to the pods
-                    self._restart_alive_pod_connectors()
-                else:
-                    # if the terminal connector is disabled, we need to remove the groups from the terminal connector
-                    # otherwise the terminal connector will show the connections to the pods
-                    self._remove_alive_pod_connectors_from_terminal_configurator(
-                        self.terminal_configurators[terminal_configurator_name]
-                    )
-
-            is_available = terminal_configurator_type.is_available()
             # add the terminal connector to the menu
             terminal_action = QAction(
                 terminal_configurator.name,
                 triggered=on_trigger,
                 checkable=True,
-                checked=is_available,
+                checked=terminal_configurator.enabled,
             )
             self.terminal_actions.append(terminal_action)
-            if is_available:
-                terminal_configurator.enabled = True
-
         self.menu.addActions(self.terminal_actions)
 
     def show_log(self):
         self.log_window.show()
 
-    def _get_enabled_terminal_configurator(self) -> list[TerminalBaseConfigurator]:
-        return [
-            terminal_configurator
-            for terminal_configurator in self.terminal_configurators.values()
-            if terminal_configurator.enabled
-        ]
+    def handle_event(self, event: Event):
+        self.log_window.append_log(f"({event.event_type}) {event.message}")
 
-    def _restart_alive_pod_connectors(self):
-        for pod_connector in self.pod_connectors.values():
-            if pod_connector.is_alive():
-                pod_connector.stop()
-                pod_connector = pod_connector.__class__(
-                    connector_event_handler=self.handle_event
-                )
-                self.pod_connectors[pod_connector.name] = pod_connector
-                pod_connector.start()
+        self._logger.info(f"Event: {event.event_type}, {event.message}, {event.data}")
 
-    def _remove_alive_pod_connectors_from_terminal_configurator(
-        self, terminal_configurator
-    ):
-        for pod_connector in self.pod_connectors.values():
-            if pod_connector.is_alive():
-                terminal_configurator.remove_group(pod_connector.name)
-
-    def handle_event(self, connector_event: ConnectorEvent):
-        self.log_window.append_log(
-            f"({connector_event.event_type}) {connector_event.event}"
-        )
-
-        self.logger.info(
-            f"Event: {connector_event.event_type}, {connector_event.event}, {connector_event.terminal_profile}"
-        )
-
+        # update the icon
         if (
-            connector_event.event_type == ConnectorEventTypes.STARTING
-            or connector_event.event_type == ConnectorEventTypes.STOPPING
-            or connector_event.event_type == ConnectorEventTypes.WARNING
+            event.event_type == EventType.STARTING
+            or event.event_type == EventType.WARNING
+            or event.event_type == EventType.ADD_PROFILE
+            or event.event_type == EventType.REMOVE_PROFILE
         ):
-            # update the icon
-            if connector_event.event_type == ConnectorEventTypes.STARTING:
-                self.tray.setIcon(QIcon(":/images/icon_working.png"))
-            elif connector_event.event_type == ConnectorEventTypes.STOPPING:
-                self.tray.setIcon(QIcon(":/images/icon_off.png"))
-            elif connector_event.event_type == ConnectorEventTypes.WARNING:
-                self.tray.setIcon(QIcon(":/images/icon_working.png"))
-
-            for terminal_configurator in self._get_enabled_terminal_configurator():
-                terminal_configurator.remove_group(connector_event.connector_name)
-
-        elif connector_event.event_type == ConnectorEventTypes.ADD_PROFILE:
             self.tray.setIcon(QIcon(":/images/icon_working.png"))
-            # add profile to the configuration
-            # update terminal connectors with the new configuration
-            for terminal_configurator in self._get_enabled_terminal_configurator():
-                terminal_configurator.add_profile(
-                    connector_event.terminal_profile,
-                    connector_event.connector_name,
-                )
-            self.tray.setIcon(QIcon(":/images/icon_on.png"))
-        elif connector_event.event_type == ConnectorEventTypes.REMOVE_PROFILE:
-            self.tray.setIcon(QIcon(":/images/icon_working.png"))
-            # remove profile from the configuration
-            for terminal_configurator in self._get_enabled_terminal_configurator():
-                terminal_configurator.remove_profile(
-                    connector_event.terminal_profile.name
-                )
-            self.tray.setIcon(QIcon(":/images/icon_on.png"))
-        elif connector_event.event_type == ConnectorEventTypes.HEALTHY:
-            # update the icon
+        elif event.event_type == EventType.STOPPING:
+            self.tray.setIcon(QIcon(":/images/icon_off.png"))
+        elif event.event_type == EventType.HEALTHY:
             self.tray.setIcon(QIcon(":/images/icon_on.png"))
 
     def run(self):
@@ -276,10 +155,8 @@ class App:
         # self.terminal_configuration.backup()
 
         self.qapp.exec()
+        self.orchestrator.stop()
 
-        for pod_connector in self.pod_connectors.values():
-            if pod_connector.is_alive():
-                pod_connector.stop()
 
 
 if __name__ == "__main__":
