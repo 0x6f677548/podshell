@@ -17,7 +17,7 @@ class LogWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Log Window")
-        icon = QIcon(":/images/icon_on.png")
+        icon = QIcon(":/resources/icon_on.png")
         self.setWindowIcon(icon)
         self.setGeometry(100, 100, 400, 300)
         layout = QVBoxLayout()
@@ -41,7 +41,7 @@ class App:
         self._qapp.setQuitOnLastWindowClosed(False)
 
         # Adding an icon
-        icon = QIcon(":/images/icon_on.png")
+        icon = QIcon(":/resources/icon_on.png")
 
         # Adding item on the menu bar
         self._tray = QSystemTrayIcon()
@@ -135,11 +135,11 @@ class App:
             or event.event_type == EventType.ADD_PROFILE
             or event.event_type == EventType.REMOVE_PROFILE
         ):
-            self._tray.setIcon(QIcon(":/images/icon_working.png"))
+            self._tray.setIcon(QIcon(":/resources/icon_working.png"))
         elif event.event_type == EventType.STOPPING:
-            self._tray.setIcon(QIcon(":/images/icon_off.png"))
+            self._tray.setIcon(QIcon(":/resources/icon_off.png"))
         elif event.event_type == EventType.HEALTHY:
-            self._tray.setIcon(QIcon(":/images/icon_on.png"))
+            self._tray.setIcon(QIcon(":/resources/icon_on.png"))
 
     def run(self):
         # //TODO: add a way to save the terminal configuration
