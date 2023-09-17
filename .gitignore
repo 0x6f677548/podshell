@@ -4,4 +4,3 @@
 *.pyc
 build/
 dist/
-PodShell.spec
