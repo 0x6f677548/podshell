@@ -2,7 +2,10 @@ from uuid import uuid4
 
 
 class TerminalProfile:
-    '''A terminal profile.'''
+    '''Represents a terminal profile configuration.
+    This class is used to add a terminal profile to a terminal configurator and 
+    holds the information needed to the terminal configuration in the terminal configurator.
+    '''
 
     def __init__(self,
                  name: str,
