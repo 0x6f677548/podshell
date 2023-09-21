@@ -3,17 +3,21 @@ import docker
 from pod.connection import BaseConnector
 from terminal import configuration
 from events import Event, EventType
+from sys import platform
+import docker.utils
+from os import path
 
 
 class DockerConnector(BaseConnector):
-    '''A connector that subscribes to Docker events '''
+    """A connector that subscribes to Docker events"""
+
     def __init__(
         self,
         event_handler: callable([Event, None]),
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
     ):
-        '''Initializes the DockerConnector.'''
+        """Initializes the DockerConnector."""
         super().__init__(
             name="Docker",
             event_handler=event_handler,
@@ -22,15 +26,13 @@ class DockerConnector(BaseConnector):
         self._shell_command = shell_command
 
     def health_check(self) -> bool:
-        '''Checks if the Docker daemon is running.
+        """Checks if the Docker daemon is running.
         It encapsulates the call to the Docker daemon in a try/except block.
         Returns:
             True if the Docker daemon is running, False otherwise.
-        '''
+        """
         try:
-            docker_client = self._get_docker_client()
-            docker_client.ping()
-            return True
+            return self._get_docker_client().ping()
         except Exception:
             return False
 
@@ -39,7 +41,29 @@ class DockerConnector(BaseConnector):
 
     def _get_docker_client(self):
         if self._docker_client is None:
-            return docker.from_env()
+            if platform == "win32":
+                self._logger.debug("Using docker.from_env()")
+                return docker.from_env()
+            else:
+                kwargs = docker.utils.kwargs_from_env()
+                # if the base_url is not set (coming from the environment variables) and we're not
+                # on Windows, the docker socket may be configured in the user's home directory
+                # let's verify that and set the base_url accordingly if needed
+                if "base_url" not in kwargs and not path.exists("/var/run/docker.sock"):
+                    socket_path = path.join(
+                        path.expanduser("~"), ".docker", "run", "docker.sock"
+                    )
+                    self._logger.debug(
+                        "Could not find docker env vars neither /var/run/docker.sock. "
+                        + "Trying to fallback to user's home directory %s",
+                        socket_path,
+                    )
+                    if path.exists(socket_path):
+                        self._logger.debug(
+                            "Found docker socket in user's home directory"
+                        )
+                        kwargs["base_url"] = "unix://{}".format(socket_path)
+                return docker.DockerClient(**kwargs)
         else:
             return self._docker_client
 
@@ -61,7 +85,9 @@ class DockerConnector(BaseConnector):
 
             if self._logger.isEnabledFor(logging.DEBUG):
                 self._logger.debug(
-                    "Docker event: %s, %s", event["Action"], terminal_profile.commandline
+                    "Docker event: %s, %s",
+                    event["Action"],
+                    terminal_profile.commandline,
                 )
 
             # call the event handler signaling that a container has been added or removed

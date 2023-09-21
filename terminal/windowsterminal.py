@@ -7,7 +7,7 @@ import json
 import logging
 from terminal.configuration import BaseConfigurator, TerminalProfile
 import threading
-import sys
+from sys import platform
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         """
 
         # check if the OS is Windows. if not, return None
-        if sys.platform != "win32":
+        if platform != "win32":
             _logger.info(
                 "This is not a Windows system. Windows Terminal is not available."
             )
