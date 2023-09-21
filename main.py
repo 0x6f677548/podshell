@@ -32,6 +32,7 @@ class LogWindow(QWidget):
 
 class App:
     """Represents the UI App"""
+
     _terminal_actions: list[QAction] = []
     _pod_actions: list[QAction] = []
     _logger = logging.getLogger(__name__)
@@ -82,6 +83,10 @@ class App:
                 self._logger.debug(f"Adding {pod_connector.name} to the menu")
 
             def on_trigger(checked, pod_connector_name=pod_connector.name):
+                status = "ENABLED" if checked else "DISABLED"
+                self._log_window.append_log(
+                    f"{status}: {pod_connector_name}"
+                )
                 self._orchestrator.trigger_pod_connector(pod_connector_name, checked)
 
             # adds the pod connector to the menu (as a checkable action)
@@ -107,6 +112,10 @@ class App:
             def on_trigger(
                 checked, terminal_configurator_name=terminal_configurator.name
             ):
+                status = "ENABLED" if checked else "DISABLED"
+                self._log_window.append_log(
+                    f"{status}: {terminal_configurator_name}"
+                )
                 self._orchestrator.trigger_terminal_configurator(
                     terminal_configurator_name, checked
                 )
@@ -127,6 +136,7 @@ class App:
 
     def _handle_orchestrator_event(self, event: Event):
         self._logger.info(f"Event: {event.event_type}, {event.message}, {event.data}")
+        self._log_window.append_log(f"{event.event_type}: {event.message}")
 
         # update the icon
         if (
