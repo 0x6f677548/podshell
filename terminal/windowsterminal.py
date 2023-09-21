@@ -7,6 +7,7 @@ import json
 import logging
 from terminal.configuration import BaseConfigurator, TerminalProfile
 import threading
+import sys
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
@@ -16,22 +17,33 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     @staticmethod
     def is_available() -> bool:
-        '''Returns true if this terminal is installed/available.'''
+        """Returns true if this terminal is installed/available."""
         return WindowsTerminalConfigurator._get_settings_file_path() is not None
 
     @staticmethod
     def _get_settings_file_path() -> str:
-        '''
+        """
         Returns the path to the settings.json file for Windows Terminal
         Returns None if the settings.json file is not found
-        '''
-        # from https://learn.microsoft.com/en-us/windows/terminal/install#settings-json-file
-        # Terminal (stable / general release):
-        #  %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
-        # Terminal (preview release):
-        #  %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json
-        # Terminal (unpackaged: Scoop, Chocolately, etc):
-        # %LOCALAPPDATA%\Microsoft\Windows Terminal\settings.json
+
+        uses the logic described in the Windows Terminal documentation:
+        from https://learn.microsoft.com/en-us/windows/terminal/install#settings-json-file
+        """
+
+        # check if the OS is Windows. if not, return None
+        if sys.platform != "win32":
+            _logger.info(
+                "This is not a Windows system. Windows Terminal is not available."
+            )
+            return None
+
+        # check if local app data environment variable exists. if not, return None
+        if "LOCALAPPDATA" not in os.environ:
+            _logger.info(
+                "LOCALAPPDATA environment variable not found. "
+                + "This may not be a Windows system. Windows Terminal is not available."
+            )
+            return None
 
         # a function that checks if a file exists and returns true or false
         # logs a debug message if the file is found
@@ -95,7 +107,8 @@ class WindowsTerminalConfigurator(BaseConfigurator):
                 "packages",
                 package_family_name,
                 "LocalState",
-                "settings.json")
+                "settings.json",
+            )
 
             if file_exists(settings_file_path):
                 return settings_file_path
@@ -110,7 +123,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         return None
 
     def __init__(self, settings_file_path: str = _get_settings_file_path()):
-        '''Initializes a new instance of the Configuration class'''
+        """Initializes a new instance of the Configuration class"""
         self._settings_file_path = settings_file_path
         self._lock = threading.Lock()
         self.name = "Windows Terminal"
@@ -126,16 +139,19 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         )
 
     def _get_group(self, settings: dict, group_name: str) -> bool:
-        return (
-            next(
-                (g for g in settings["newTabMenu"] if g.get("name") == group_name), None
-            )
+        return next(
+            (g for g in settings["newTabMenu"] if g.get("name") == group_name), None
         )
 
     def _profile_exists(self, settings: dict, profile_name: str) -> bool:
         return (
             next(
-                (p for p in settings["profiles"]["list"] if p.get("name") == profile_name), None
+                (
+                    p
+                    for p in settings["profiles"]["list"]
+                    if p.get("name") == profile_name
+                ),
+                None,
             )
             is not None
         )
@@ -165,8 +181,10 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     # region add profiles
 
-    def add_profiles(self, profiles: list[TerminalProfile], group_name: str = None) -> None:
-        '''Adds the specified profiles to the settings.json file'''
+    def add_profiles(
+        self, profiles: list[TerminalProfile], group_name: str = None
+    ) -> None:
+        """Adds the specified profiles to the settings.json file"""
         with self._lock:
             settings = self._get_settings()
             for profile in profiles:
@@ -192,7 +210,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
     # region remove profiles
 
     def remove_profiles(self, profile_names: list[str]) -> None:
-        '''Removes the specified profiles from the settings.json file'''
+        """Removes the specified profiles from the settings.json file"""
         with self._lock:
             settings = self._get_settings()
 
@@ -222,7 +240,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     # region remove group
     def remove_group(self, group_name: str) -> None:
-        '''Removes the specified group from the settings.json file'''
+        """Removes the specified group from the settings.json file"""
         with self._lock:
             settings = self._get_settings()
 
@@ -240,7 +258,9 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
             # remove all profiles from the list
             settings["profiles"]["list"] = [
-                p for p in settings["profiles"]["list"] if p["guid"] not in profile_guids
+                p
+                for p in settings["profiles"]["list"]
+                if p["guid"] not in profile_guids
             ]
 
             # remove all profile entries from all groups
@@ -271,7 +291,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         # Copy the settings file to the backup location
         shutil.copy(
             self._settings_file_path,
-            os.path.join(backup_folder, os.path.basename(backup_file_path))
+            os.path.join(backup_folder, os.path.basename(backup_file_path)),
         )
 
         # Delete backup files older than 7 days
