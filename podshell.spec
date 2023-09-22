@@ -41,5 +41,11 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['resources\\icon512.png'],
+    icon=['resources/icon512.png'],
+)
+app = BUNDLE(
+    exe,
+    name='podshell.app',
+    icon='resources/icon512.png',
+    bundle_identifier=None,
 )
