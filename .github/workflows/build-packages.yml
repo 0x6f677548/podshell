@@ -37,6 +37,8 @@ jobs:
                 tar -acvf podshell-windows.zip podshell-console.exe podshell.exe
             OUT_FILE_NAME: podshell-windows.zip
             ASSET_MIME: application/zip
+    permissions:
+      contents: write
     steps:
 
     - uses: actions/checkout@v1
