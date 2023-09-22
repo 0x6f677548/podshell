@@ -18,7 +18,14 @@ class WindowsTerminalConfigurator(BaseConfigurator):
     @staticmethod
     def is_available() -> bool:
         """Returns true if this terminal is installed/available."""
-        return WindowsTerminalConfigurator._get_settings_file_path() is not None
+        # check if the OS is Windows. if not, return false
+        if platform != "win32":
+            _logger.info(
+                "This is not a Windows system. Windows Terminal is not available."
+            )
+            return False
+        else:
+            return WindowsTerminalConfigurator._get_settings_file_path() is not None
 
     @staticmethod
     def _get_settings_file_path() -> str:
@@ -29,13 +36,6 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         uses the logic described in the Windows Terminal documentation:
         from https://learn.microsoft.com/en-us/windows/terminal/install#settings-json-file
         """
-
-        # check if the OS is Windows. if not, return None
-        if platform != "win32":
-            _logger.info(
-                "This is not a Windows system. Windows Terminal is not available."
-            )
-            return None
 
         # check if local app data environment variable exists. if not, return None
         if "LOCALAPPDATA" not in os.environ:
@@ -296,12 +296,11 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
         # Delete backup files older than 7 days
         for filename in os.listdir(backup_folder):
-            if filename.startswith("settings.backup.") and filename.endswith(".json"):
-                file_path = os.path.join(backup_folder, filename)
-                file_creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
-                if datetime.now() - file_creation_time > timedelta(days=7):
-                    os.remove(file_path)
-                    print(f"Deleted backup file: {filename}")
+            file_path = os.path.join(backup_folder, filename)
+            file_creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
+            if datetime.now() - file_creation_time > timedelta(days=7):
+                os.remove(file_path)
+                _logger.info(f"Deleted backup file: {filename}")
 
     def _save(self, settings) -> None:
         # Convert the settings object to JSON and write it to the file
