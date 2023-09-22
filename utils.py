@@ -5,7 +5,7 @@ APP_NAME = "podshell"
 """The name of the application."""
 
 
-def which(program: str, default: str = None) -> str:
+def which(program: str, default: str | None = None) -> str | None:
     """Returns the path to a program if it exists in the PATH environment variable.
     Args:
         program: The name of the program to look for.

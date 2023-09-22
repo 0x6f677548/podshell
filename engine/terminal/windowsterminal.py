@@ -28,7 +28,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
             return WindowsTerminalConfigurator._get_settings_file_path() is not None
 
     @staticmethod
-    def _get_settings_file_path() -> str:
+    def _get_settings_file_path() -> str | None:
         """
         Returns the path to the settings.json file for Windows Terminal
         Returns None if the settings.json file is not found
@@ -224,19 +224,19 @@ class WindowsTerminalConfigurator(BaseConfigurator):
                     profiles_to_keep.append(profile)
 
             settings["profiles"]["list"] = profiles_to_keep
-
-            # check for all entries in all groups and remove them
-            for group in settings["newTabMenu"]:
-                if group.get("type") == "folder":
-                    group["entries"] = [
-                        e
-                        for e in group["entries"]
-                        if e["type"] == "profile" and e["profile"] not in profile_guids
-                    ]
-
+            self._remove_entries_from_group(settings, profile_guids)
             self._save(settings)
 
     # endregion
+
+    def _remove_entries_from_group(self, settings: dict, profile_guids: list[str]) -> None:
+        for group in settings["newTabMenu"]:
+            if group.get("type") == "folder":
+                group["entries"] = [
+                    e
+                    for e in group["entries"]
+                    if e["type"] == "profile" and e["profile"] not in profile_guids
+                ]
 
     # region remove group
     def remove_group(self, group_name: str) -> None:
@@ -262,16 +262,8 @@ class WindowsTerminalConfigurator(BaseConfigurator):
                 for p in settings["profiles"]["list"]
                 if p["guid"] not in profile_guids
             ]
-
             # remove all profile entries from all groups
-            for group in settings["newTabMenu"]:
-                if group.get("type") == "folder":
-                    group["entries"] = [
-                        e
-                        for e in group["entries"]
-                        if e["type"] == "profile" and e["profile"] not in profile_guids
-                    ]
-
+            self._remove_entries_from_group(settings, profile_guids)
             self._save(settings)
 
     # end region

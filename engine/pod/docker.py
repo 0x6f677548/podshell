@@ -4,8 +4,8 @@ from sys import platform
 import docker
 import docker.utils
 from .connection import BaseConnector
-from ..terminal import configuration
-from ..events import Event, EventType
+from engine.events import Event, EventType
+from engine.terminal import configuration
 import utils
 
 

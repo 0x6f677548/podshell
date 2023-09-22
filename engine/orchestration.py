@@ -4,14 +4,16 @@ from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
 from .terminal import windowsterminal, iterm2
 from .pod.docker import DockerConnector
 from .pod.ssh import SSHConnector
-from .events import Event, EventType
+from events import Event, EventType
 
 
 class Orchestrator:
     """Represents the orchestrator between the pod connectors and the terminal configurators"""
+
     _pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
     _terminal_configurator_types: list[TerminalBaseConfigurator] = [
-        windowsterminal.WindowsTerminalConfigurator, iterm2.ITerm2Configurator
+        windowsterminal.WindowsTerminalConfigurator,
+        iterm2.ITerm2Configurator,
     ]
     # a dictionary (key: pod connector name, value: pod connector instance)
     pod_connectors: dict[str, PodBaseConnector] = {}
@@ -72,7 +74,7 @@ class Orchestrator:
                 event_message=event_message,
             )
         )
-        
+
         self.terminal_configurators[terminal_configurator_name].enabled = enable
         if enable:
             # since a new terminal connector has been enabled, we need to restart the pod connectors

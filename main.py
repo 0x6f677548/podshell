@@ -132,7 +132,6 @@ class App:
         else:
             self._menu.addAction("No terminal configurators available")
             self._log_window.append_log("No terminal configurators available")
-        
 
     def show_log(self):
         self._log_window.show()

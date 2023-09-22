@@ -41,7 +41,7 @@ class ITerm2Configurator(BaseConfigurator):
             return False
         return True
 
-    def __init__(self, settings_file_path: str = None):
+    def __init__(self, settings_file_path: str | None = None):
         """Initializes a new instance of the Configuration class"""
         if settings_file_path is None:
             settings_file_path = os.path.join(
@@ -63,7 +63,7 @@ class ITerm2Configurator(BaseConfigurator):
     # region add profiles
 
     def add_profiles(
-        self, profiles: list[TerminalProfile], group_name: str = None
+        self, profiles: list[TerminalProfile], group_name: str | None = None
     ) -> None:
         """Adds the specified profiles to the settings file
         format of the profile:

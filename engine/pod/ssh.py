@@ -3,8 +3,8 @@ import time
 import logging
 import utils
 from .connection import BaseConnector
-from ..events import Event, EventType
-from ..terminal import configuration
+from engine.events import Event, EventType
+from engine.terminal import configuration
 
 
 class SSHConnector(BaseConnector):
@@ -16,19 +16,20 @@ class SSHConnector(BaseConnector):
 
     class SSHProfile:
         """A class that represents an ssh profile from the ssh config file."""
+        hostname: str | None = None
+        user: str | None = None
+        port: str | None = None
+        name: str
 
-        def __init__(self, name, hostname, user, port):
+        def __init__(self, name: str):
             self.name = name
-            self.hostname = hostname
-            self.user = user
-            self.port = port
 
     def __init__(
         self,
         event_handler: callable([Event, None]),
         ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
-        ssh_command: str = utils.which("ssh", "ssh")
+        ssh_command: str = utils.which("ssh", "ssh"),
     ):
         """Initializes the SSHConnector."""
         super().__init__(
@@ -53,9 +54,7 @@ class SSHConnector(BaseConnector):
                     if current_profile:
                         profiles.append(current_profile)
                     parts = line.split()
-                    current_profile = SSHConnector.SSHProfile(
-                        name=parts[1], hostname=None, user=None, port=None
-                    )
+                    current_profile = SSHConnector.SSHProfile(name=parts[1])
                 elif line.startswith("HostName "):
                     current_profile.hostname = line.split()[1]
                 elif line.startswith("User "):
@@ -90,7 +89,7 @@ class SSHConnector(BaseConnector):
                         Event(
                             source_name=self.name,
                             event_type=EventType.ADD_PROFILE,
-                            event_message=terminal_profile,
+                            event_message=str(terminal_profile),
                             event_data=terminal_profile,
                         )
                     )
@@ -100,7 +99,10 @@ class SSHConnector(BaseConnector):
 
         modified_on = None
         while not self.terminated:
-            if not modified_on or os.path.getmtime(self._ssh_config_file) != modified_on:
+            if (
+                not modified_on
+                or os.path.getmtime(self._ssh_config_file) != modified_on
+            ):
                 if modified_on:
                     # call the event handler signaling that the connector is starting
                     # this is actually a restart since the config file has changed

@@ -1,7 +1,7 @@
 import time
 import threading
 import logging
-from ..events import Event, EventType
+from engine.events import Event, EventType
 
 
 class BaseConnector(threading.Thread):

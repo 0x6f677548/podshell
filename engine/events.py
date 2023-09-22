@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class EventType(StrEnum):
     """The type of the event."""
+
     ADD_PROFILE = "ADD_PROFILE"
     REMOVE_PROFILE = "REMOVE_PROFILE"
     WARNING = "WARNING"
@@ -19,7 +20,7 @@ class Event:
         source_name: str,
         event_type: EventType,
         event_message: str,
-        event_data: any = None
+        event_data=None,
     ):
         """Creates a new instance of the Event class."""
         self.event_type = event_type

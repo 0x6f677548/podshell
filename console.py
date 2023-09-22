@@ -4,6 +4,7 @@ from engine.events import Event
 
 class App:
     """Represents a console App"""
+
     def __init__(self) -> None:
         """Creates a new instance of the App class."""
         self._orchestrator = Orchestrator(self._handle_orchestrator_event)
