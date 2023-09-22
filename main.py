@@ -84,9 +84,7 @@ class App:
 
             def on_trigger(checked, pod_connector_name=pod_connector.name):
                 status = "ENABLED" if checked else "DISABLED"
-                self._log_window.append_log(
-                    f"{status}: {pod_connector_name}"
-                )
+                self._log_window.append_log(f"{status}: {pod_connector_name}")
                 self._orchestrator.trigger_pod_connector(pod_connector_name, checked)
 
             # adds the pod connector to the menu (as a checkable action)
@@ -113,9 +111,7 @@ class App:
                 checked, terminal_configurator_name=terminal_configurator.name
             ):
                 status = "ENABLED" if checked else "DISABLED"
-                self._log_window.append_log(
-                    f"{status}: {terminal_configurator_name}"
-                )
+                self._log_window.append_log(f"{status}: {terminal_configurator_name}")
                 self._orchestrator.trigger_terminal_configurator(
                     terminal_configurator_name, checked
                 )
@@ -152,9 +148,6 @@ class App:
             self._tray.setIcon(QIcon(":/resources/icon_on.png"))
 
     def run(self):
-        # //TODO: add a way to save the terminal configuration
-        # self.terminal_configuration.backup()
-
         self._qapp.exec()
         self._orchestrator.stop()
 
