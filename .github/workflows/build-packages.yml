@@ -1,5 +1,6 @@
 ---
 name: Build -> Packages for Windows & MacOS
+# yamllint disable-line rule:line-length
 
 on:
   release:
