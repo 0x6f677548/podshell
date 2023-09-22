@@ -4,7 +4,8 @@ from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
 from .terminal import windowsterminal, iterm2
 from .pod.docker import DockerConnector
 from .pod.ssh import SSHConnector
-from events import Event, EventType
+from .events import Event, EventType
+from typing import Callable
 
 
 class Orchestrator:
@@ -25,7 +26,7 @@ class Orchestrator:
 
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, event_handler: callable([Event, None])):
+    def __init__(self, event_handler: Callable[[Event], None]):
         self._event_handler = event_handler
         self._init_terminal_configurators()
         self._init_pod_connectors()

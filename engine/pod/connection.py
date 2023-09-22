@@ -2,7 +2,7 @@ import time
 import threading
 import logging
 from engine.events import Event, EventType
-
+from typing import Callable
 
 class BaseConnector(threading.Thread):
     """Base class for all connectors.
@@ -24,7 +24,7 @@ class BaseConnector(threading.Thread):
     def __init__(
         self,
         name: str,
-        event_handler: callable([Event, None]),
+        event_handler: Callable[[Event], None]
     ):
         """Creates a new instance of the BaseConnector class."""
         super().__init__(daemon=True)

@@ -7,6 +7,7 @@ from .connection import BaseConnector
 from engine.events import Event, EventType
 from engine.terminal import configuration
 import utils
+from typing import Callable
 
 
 class DockerConnector(BaseConnector):
@@ -14,7 +15,7 @@ class DockerConnector(BaseConnector):
 
     def __init__(
         self,
-        event_handler: callable([Event, None]),
+        event_handler: Callable[[Event], None],
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
         docker_command: str | None = utils.which("docker", "docker"),

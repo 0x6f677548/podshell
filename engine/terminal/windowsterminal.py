@@ -131,12 +131,11 @@ class WindowsTerminalConfigurator(BaseConfigurator):
     # region group management
 
     def _is_profile_in_group(self, group: dict, profile_name: str) -> bool:
-        return (
-            next(
-                (e for e in group.get("entries") if e.get("name") == profile_name), None
-            )
-            is not None
-        )
+        if group["entries"] is not None:
+            for entry in group.get("entries"):
+                if entry.get("name") == profile_name:
+                    return True
+        return False
 
     def _get_group(self, settings: dict, group_name: str) -> bool:
         return next(
@@ -144,17 +143,10 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         )
 
     def _profile_exists(self, settings: dict, profile_name: str) -> bool:
-        return (
-            next(
-                (
-                    p
-                    for p in settings["profiles"]["list"]
-                    if p.get("name") == profile_name
-                ),
-                None,
-            )
-            is not None
-        )
+        for profile in settings["profiles"]["list"]:
+            if profile["name"] == profile_name:
+                return True
+        return False
 
     def _upsert_group(
         self, settings: dict, group_name: str, profiles: list[TerminalProfile]

@@ -5,6 +5,7 @@ import utils
 from .connection import BaseConnector
 from engine.events import Event, EventType
 from engine.terminal import configuration
+from typing import Callable
 
 
 class SSHConnector(BaseConnector):
@@ -27,7 +28,7 @@ class SSHConnector(BaseConnector):
 
     def __init__(
         self,
-        event_handler: callable([Event, None]),
+        event_handler: Callable[[Event], None],
         ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
         ssh_command: str | None = utils.which("ssh", "ssh"),
@@ -74,7 +75,7 @@ class SSHConnector(BaseConnector):
             # create terminal profiles for each ssh profile
             for profile in ssh_profiles:
                 if profile.hostname:
-                    commandline = self._ssh_command + " "
+                    commandline = f"{self._ssh_command} "
                     if profile.user:
                         commandline += f"{profile.user}@"
                     commandline += profile.hostname
