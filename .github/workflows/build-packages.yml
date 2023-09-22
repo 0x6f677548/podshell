@@ -45,7 +45,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt        
+        pip install -r requirements.txt
+        pip install pyinstaller
+        pip install Pillow        
     - name: Build with pyinstaller for ${{matrix.TARGET}}
       run: ${{matrix.CMD_BUILD}}
     - name: upload packages
