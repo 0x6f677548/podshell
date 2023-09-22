@@ -11,8 +11,8 @@ from typing import Callable
 class Orchestrator:
     """Represents the orchestrator between the pod connectors and the terminal configurators"""
 
-    _pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
-    _terminal_configurator_types: list[TerminalBaseConfigurator] = [
+    _pod_connector_types = [DockerConnector, SSHConnector]
+    _terminal_configurator_types = [
         windowsterminal.WindowsTerminalConfigurator,
         iterm2.ITerm2Configurator,
     ]
@@ -95,7 +95,6 @@ class Orchestrator:
         self._logger.debug(
             f"Trigger pod connector {pod_connector_name}. State: {enable}"
         )
-        self.pod_connectors[pod_connector_name].enabled = enable
         if enable:
             self._start_pod_connector(pod_connector_name)
         else:

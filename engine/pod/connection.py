@@ -22,7 +22,7 @@ class BaseConnector(threading.Thread):
     A terminated connector should not be restarted.
     """
 
-    def __init__(self, name: str, event_handler: Callable[[Event], None]):
+    def __init__(self, event_handler: Callable[[Event], None], name: str = ""):
         """Creates a new instance of the BaseConnector class."""
         super().__init__(daemon=True)
         self.terminated = False

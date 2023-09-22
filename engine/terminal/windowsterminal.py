@@ -132,7 +132,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def _is_profile_in_group(self, group: dict, profile_name: str) -> bool:
         if group["entries"] is not None:
-            for entry in group.get("entries"):
+            for entry in group["entries"]:
                 if entry.get("name") == profile_name:
                     return True
         return False
@@ -265,6 +265,9 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     def backup(self) -> None:
         """Backup the settings.json file and deletes backups longer than 7 days"""
+        if self._settings_file_path is None:
+            raise Exception("Windows Terminal settings file not found")
+
         # Generate the backup file name
         backup_file_path = re.sub(
             r"\.json$",
@@ -290,11 +293,15 @@ class WindowsTerminalConfigurator(BaseConfigurator):
                 _logger.info(f"Deleted backup file: {filename}")
 
     def _save(self, settings) -> None:
+        if self._settings_file_path is None:
+            raise Exception("Windows Terminal settings file not found")
         # Convert the settings object to JSON and write it to the file
         with open(self._settings_file_path, "w") as settings_file:
             json.dump(settings, settings_file, indent=4)
 
     def _get_settings(self) -> dict:
+        if self._settings_file_path is None:
+            raise Exception("Windows Terminal settings file not found")
         # Read the current JSON content
         with open(self._settings_file_path, "r") as settings_file:
             current_settings = json.load(settings_file)
