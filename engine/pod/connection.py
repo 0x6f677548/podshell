@@ -4,6 +4,7 @@ import logging
 from engine.events import Event, EventType
 from typing import Callable
 
+
 class BaseConnector(threading.Thread):
     """Base class for all connectors.
     A connector is a thread that runs in the background and communicates with
@@ -21,11 +22,7 @@ class BaseConnector(threading.Thread):
     A terminated connector should not be restarted.
     """
 
-    def __init__(
-        self,
-        name: str,
-        event_handler: Callable[[Event], None]
-    ):
+    def __init__(self, name: str, event_handler: Callable[[Event], None]):
         """Creates a new instance of the BaseConnector class."""
         super().__init__(daemon=True)
         self.terminated = False

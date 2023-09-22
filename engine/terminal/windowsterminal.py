@@ -137,10 +137,11 @@ class WindowsTerminalConfigurator(BaseConfigurator):
                     return True
         return False
 
-    def _get_group(self, settings: dict, group_name: str) -> bool:
-        return next(
-            (g for g in settings["newTabMenu"] if g.get("name") == group_name), None
-        )
+    def _get_group(self, settings: dict, group_name: str) -> dict | None:
+        for group in settings["newTabMenu"]:
+            if group.get("name") == group_name:
+                return group
+        return None
 
     def _profile_exists(self, settings: dict, profile_name: str) -> bool:
         for profile in settings["profiles"]["list"]:

@@ -4,7 +4,7 @@ from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
 from .terminal import windowsterminal, iterm2
 from .pod.docker import DockerConnector
 from .pod.ssh import SSHConnector
-from .events import Event, EventType
+from engine.events import Event, EventType
 from typing import Callable
 
 
