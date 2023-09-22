@@ -6,6 +6,7 @@ from events import Event, EventType
 from sys import platform
 import docker.utils
 from os import path
+import utils
 
 
 class DockerConnector(BaseConnector):
@@ -16,6 +17,7 @@ class DockerConnector(BaseConnector):
         event_handler: callable([Event, None]),
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
+        docker_command: str = utils.which("docker", "docker"),
     ):
         """Initializes the DockerConnector."""
         super().__init__(
@@ -24,6 +26,7 @@ class DockerConnector(BaseConnector):
         )
         self._docker_client = docker_client
         self._shell_command = shell_command
+        self._docker_command = docker_command
 
     def health_check(self) -> bool:
         """Checks if the Docker daemon is running.
@@ -37,7 +40,7 @@ class DockerConnector(BaseConnector):
             return False
 
     def _get_command(self, container_name):
-        return f"docker exec -it {container_name} {self._shell_command}"
+        return f"{self._docker_command} exec -it {container_name} {self._shell_command}"
 
     def _get_docker_client(self):
         if self._docker_client is None:
