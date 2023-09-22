@@ -1,7 +1,7 @@
 import logging
 from pod.connection import BaseConnector as PodBaseConnector
 from terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
-from terminal import windowsterminal
+from terminal import windowsterminal, iterm2
 from pod.docker import DockerConnector
 from pod.ssh import SSHConnector
 from events import Event, EventType
@@ -11,7 +11,7 @@ class Orchestrator:
     """Represents the orchestrator between the pod connectors and the terminal configurators"""
     _pod_connector_types: list[PodBaseConnector] = [DockerConnector, SSHConnector]
     _terminal_configurator_types: list[TerminalBaseConfigurator] = [
-        windowsterminal.WindowsTerminalConfigurator
+        windowsterminal.WindowsTerminalConfigurator, iterm2.ITerm2Configurator
     ]
     # a dictionary (key: pod connector name, value: pod connector instance)
     pod_connectors: dict[str, PodBaseConnector] = {}
