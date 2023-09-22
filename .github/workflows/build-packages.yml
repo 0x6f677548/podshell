@@ -38,14 +38,6 @@ jobs:
             OUT_FILE_NAME: podshell-windows.zip
             ASSET_MIME: application/zip
     steps:
-    - name: Get current date and time
-      id: datetime
-      run: |
-        datetime=$(date +'%Y-%m-%dT%H-%M-%SZ')
-        echo "datetime=$datetime" >> $GITHUB_OUTPUT
-
-    - name: Display date/time in output (forensics when triaging issues)
-      run: echo ${{ steps.datetime.outputs.datetime }}
 
     - uses: actions/checkout@v1
     
