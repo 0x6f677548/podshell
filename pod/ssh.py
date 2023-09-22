@@ -4,6 +4,7 @@ from events import Event, EventType
 from terminal import configuration
 import os
 import time
+import utils
 
 
 class SSHConnector(BaseConnector):
@@ -27,6 +28,7 @@ class SSHConnector(BaseConnector):
         event_handler: callable([Event, None]),
         ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
+        ssh_command: str = utils.which("ssh", "ssh")
     ):
         """Initializes the SSHConnector."""
         super().__init__(
@@ -36,12 +38,13 @@ class SSHConnector(BaseConnector):
 
         if ssh_config_file is None:
             ssh_config_file = os.path.expanduser(os.path.join("~", ".ssh", "config"))
-        self.ssh_config_file = ssh_config_file
-        self.poll_interval = poll_interval
+        self._ssh_config_file = ssh_config_file
+        self._poll_interval = poll_interval
+        self._ssh_command = ssh_command
 
     def _get_ssh_profile_from_config(self) -> list[SSHProfile]:
         profiles = []
-        with open(self.ssh_config_file, "r") as file:
+        with open(self._ssh_config_file, "r") as file:
             lines = file.readlines()
             current_profile = None
             for line in lines:
@@ -70,7 +73,7 @@ class SSHConnector(BaseConnector):
             # create terminal profiles for each ssh profile
             for profile in ssh_profiles:
                 if profile.hostname:
-                    commandline = "ssh "
+                    commandline = self._ssh_command + " "
                     if profile.user:
                         commandline += f"{profile.user}@"
                     commandline += profile.hostname
@@ -93,11 +96,11 @@ class SSHConnector(BaseConnector):
                     )
 
         # start watching the ssh config file
-        self._logger.info("Watching ssh config file: %s", self.ssh_config_file)
+        self._logger.info("Watching ssh config file: %s", self._ssh_config_file)
 
         modified_on = None
         while not self.terminated:
-            if not modified_on or os.path.getmtime(self.ssh_config_file) != modified_on:
+            if not modified_on or os.path.getmtime(self._ssh_config_file) != modified_on:
                 if modified_on:
                     # call the event handler signaling that the connector is starting
                     # this is actually a restart since the config file has changed
@@ -109,14 +112,14 @@ class SSHConnector(BaseConnector):
                         )
                     )
 
-                modified_on = os.path.getmtime(self.ssh_config_file)
+                modified_on = os.path.getmtime(self._ssh_config_file)
                 self._logger.debug("SSH config file modified on: %s", modified_on)
                 ssh_profiles = self._get_ssh_profile_from_config()
                 trigger_event_handler(ssh_profiles)
             else:
                 self._logger.debug("SSH config file not modified")
 
-            time.sleep(self.poll_interval)
+            time.sleep(self._poll_interval)
 
     def stop(self, timeout: float = 1):
         """Stops the connector."""
@@ -125,4 +128,4 @@ class SSHConnector(BaseConnector):
 
     def health_check(self) -> bool:
         """Checks if the ssh config file exists."""
-        return os.path.exists(self.ssh_config_file)
+        return os.path.exists(self._ssh_config_file)
