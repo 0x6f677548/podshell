@@ -1,5 +1,6 @@
 ---
 name: Debug->dump env and context
+#yamllint disable
 
 on:
   workflow_dispatch:
@@ -17,8 +18,9 @@ jobs:
     steps:
       - name: Get current date and time
         id: datetime
-        run: echo "datetime=\$(date +'%Y-%m-%dT%H-%M-%SZ')" >> $GITHUB_OUTPUT
-
+        run: |
+          datetime=$(date +'%Y-%m-%dT%H-%M-%SZ')
+          echo "datetime=$datetime" >> $GITHUB_OUTPUT
 
       - name: Display Run Name
         run: echo ${{ steps.datetime.outputs.datetime }}

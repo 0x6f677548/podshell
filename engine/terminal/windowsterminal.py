@@ -122,7 +122,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
         # if we get here, the settings.json file was not found
         return None
 
-    def __init__(self, settings_file_path: str = _get_settings_file_path()):
+    def __init__(self, settings_file_path: str | None = _get_settings_file_path()):
         """Initializes a new instance of the Configuration class"""
         self._settings_file_path = settings_file_path
         self._lock = threading.Lock()
@@ -182,7 +182,7 @@ class WindowsTerminalConfigurator(BaseConfigurator):
     # region add profiles
 
     def add_profiles(
-        self, profiles: list[TerminalProfile], group_name: str = None
+        self, profiles: list[TerminalProfile], group_name: str | None = None
     ) -> None:
         """Adds the specified profiles to the settings.json file"""
         with self._lock:
@@ -229,7 +229,9 @@ class WindowsTerminalConfigurator(BaseConfigurator):
 
     # endregion
 
-    def _remove_entries_from_group(self, settings: dict, profile_guids: list[str]) -> None:
+    def _remove_entries_from_group(
+        self, settings: dict, profile_guids: list[str]
+    ) -> None:
         for group in settings["newTabMenu"]:
             if group.get("type") == "folder":
                 group["entries"] = [

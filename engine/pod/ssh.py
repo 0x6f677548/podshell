@@ -16,6 +16,7 @@ class SSHConnector(BaseConnector):
 
     class SSHProfile:
         """A class that represents an ssh profile from the ssh config file."""
+
         hostname: str | None = None
         user: str | None = None
         port: str | None = None
@@ -29,7 +30,7 @@ class SSHConnector(BaseConnector):
         event_handler: callable([Event, None]),
         ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
-        ssh_command: str = utils.which("ssh", "ssh"),
+        ssh_command: str | None = utils.which("ssh", "ssh"),
     ):
         """Initializes the SSHConnector."""
         super().__init__(
@@ -47,7 +48,7 @@ class SSHConnector(BaseConnector):
         profiles = []
         with open(self._ssh_config_file, "r") as file:
             lines = file.readlines()
-            current_profile = None
+            current_profile: SSHConnector.SSHProfile | None = None
             for line in lines:
                 line = line.strip()
                 if line.startswith("Host "):
@@ -55,12 +56,13 @@ class SSHConnector(BaseConnector):
                         profiles.append(current_profile)
                     parts = line.split()
                     current_profile = SSHConnector.SSHProfile(name=parts[1])
-                elif line.startswith("HostName "):
-                    current_profile.hostname = line.split()[1]
-                elif line.startswith("User "):
-                    current_profile.user = line.split()[1]
-                elif line.startswith("Port "):
-                    current_profile.port = line.split()[1]
+                elif current_profile:
+                    if line.startswith("HostName "):
+                        current_profile.hostname = line.split()[1]
+                    elif line.startswith("User "):
+                        current_profile.user = line.split()[1]
+                    elif line.startswith("Port "):
+                        current_profile.port = line.split()[1]
             if current_profile:
                 profiles.append(current_profile)
         return profiles

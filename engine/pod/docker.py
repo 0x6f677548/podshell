@@ -17,7 +17,7 @@ class DockerConnector(BaseConnector):
         event_handler: callable([Event, None]),
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
-        docker_command: str = utils.which("docker", "docker"),
+        docker_command: str | None = utils.which("docker", "docker"),
     ):
         """Initializes the DockerConnector."""
         super().__init__(
