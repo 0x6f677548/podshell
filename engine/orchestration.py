@@ -1,10 +1,10 @@
 import logging
-from pod.connection import BaseConnector as PodBaseConnector
-from terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
-from terminal import windowsterminal, iterm2
-from pod.docker import DockerConnector
-from pod.ssh import SSHConnector
-from events import Event, EventType
+from .pod.connection import BaseConnector as PodBaseConnector
+from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
+from .terminal import windowsterminal, iterm2
+from .pod.docker import DockerConnector
+from .pod.ssh import SSHConnector
+from .events import Event, EventType
 
 
 class Orchestrator:
@@ -72,7 +72,7 @@ class Orchestrator:
                 event_message=event_message,
             )
         )
-
+        
         self.terminal_configurators[terminal_configurator_name].enabled = enable
         if enable:
             # since a new terminal connector has been enabled, we need to restart the pod connectors

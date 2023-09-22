@@ -1,10 +1,10 @@
-import logging
-from pod.connection import BaseConnector
-from events import Event, EventType
-from terminal import configuration
 import os
 import time
+import logging
 import utils
+from .connection import BaseConnector
+from ..events import Event, EventType
+from ..terminal import configuration
 
 
 class SSHConnector(BaseConnector):

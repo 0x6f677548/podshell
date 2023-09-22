@@ -1,6 +1,10 @@
 # Description: Utility functions for the project.
 
 
+APP_NAME = "podshell"
+"""The name of the application."""
+
+
 def which(program: str, default: str = None) -> str:
     """Returns the path to a program if it exists in the PATH environment variable.
     Args:

@@ -2,11 +2,12 @@ import os
 import shutil
 import re
 from datetime import datetime, timedelta
-import json
-import logging
-from terminal.configuration import BaseConfigurator, TerminalProfile
 import threading
 from sys import platform
+import json
+import logging
+from .configuration import BaseConfigurator, TerminalProfile
+from utils import APP_NAME
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class ITerm2Configurator(BaseConfigurator):
         """Initializes a new instance of the Configuration class"""
         if settings_file_path is None:
             settings_file_path = os.path.join(
-                ITerm2Configurator.SETTINGS_DIR, "podshell.json"
+                ITerm2Configurator.SETTINGS_DIR, APP_NAME + ".json"
             )
         self._settings_file_path = settings_file_path
         self._lock = threading.Lock()
@@ -90,7 +91,7 @@ class ITerm2Configurator(BaseConfigurator):
                             "Custom Command": "Yes",
                             "Command": profile.commandline,
                             "Guid": profile.guid,
-                            "Tags": ["podshell", group_name],
+                            "Tags": [APP_NAME, group_name],
                             "Title Components": 544,
                         }
                     )

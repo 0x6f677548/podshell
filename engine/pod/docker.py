@@ -1,11 +1,11 @@
 import logging
-import docker
-from pod.connection import BaseConnector
-from terminal import configuration
-from events import Event, EventType
-from sys import platform
-import docker.utils
 from os import path
+from sys import platform
+import docker
+import docker.utils
+from .connection import BaseConnector
+from ..terminal import configuration
+from ..events import Event, EventType
 import utils
 
 

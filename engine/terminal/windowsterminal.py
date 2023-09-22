@@ -5,9 +5,9 @@ import re
 from datetime import datetime, timedelta
 import json
 import logging
-from terminal.configuration import BaseConfigurator, TerminalProfile
 import threading
 from sys import platform
+from .configuration import BaseConfigurator, TerminalProfile
 
 _logger: logging.Logger = logging.getLogger(__name__)
 
