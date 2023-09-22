@@ -1,5 +1,5 @@
 import logging
-from orchestration import Orchestrator, Event, EventType
+from engine.orchestration import Orchestrator, Event, EventType
 from PySide6.QtWidgets import (
     QApplication,
     QSystemTrayIcon,
@@ -116,16 +116,23 @@ class App:
                     terminal_configurator_name, checked
                 )
 
-            # add the terminal connector to the menu
-            self._terminal_actions.append(
-                QAction(
-                    terminal_configurator.name,
-                    triggered=on_trigger,
-                    checkable=True,
-                    checked=terminal_configurator.enabled,
+            if terminal_configurator.is_available():
+                # if the terminal configurator is available, we add it to the menu
+                # as a checkable action
+                self._terminal_actions.append(
+                    QAction(
+                        terminal_configurator.name,
+                        triggered=on_trigger,
+                        checkable=True,
+                        checked=terminal_configurator.enabled,
+                    )
                 )
-            )
-        self._menu.addActions(self._terminal_actions)
+        if len(self._terminal_actions) > 0:
+            self._menu.addActions(self._terminal_actions)
+        else:
+            self._menu.addAction("No terminal configurators available")
+            self._log_window.append_log("No terminal configurators available")
+        
 
     def show_log(self):
         self._log_window.show()
