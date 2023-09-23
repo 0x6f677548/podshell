@@ -89,7 +89,8 @@ jobs:
       uses: actions/upload-artifact@v3.1.3
       with:
         name: ${{ matrix.OUT_FILE_NAME }}
-        path: dist/${{ matrix.OUT_FILE_NAME }}
+        path: src/dist/${{ matrix.OUT_FILE_NAME }}
+        if-no-files-found: error
 
   create_release:
     name: Create Release
@@ -118,10 +119,10 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v2.1.1
         with:
-          path: dist/
+          path: src/dist/
       - name: Display structure of downloaded files
         run: ls -R
-        working-directory: dist/
+        working-directory: src/dist/
       
       - name: Create release branch
         run: |
@@ -133,10 +134,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ inputs.draft == 'true' }}
         run: |        
-          gh release create ${{ inputs.version }} --title ${{ inputs.version }} --generate-notes 'dist/podshell-macos.zip/podshell-macos.zip' 'dist/podshell-windows.zip/podshell-windows.zip' --draft
+          gh release create ${{ inputs.version }} --title ${{ inputs.version }} --generate-notes 'src/dist/podshell-macos.zip/podshell-macos.zip' 'src/dist/podshell-windows.zip/podshell-windows.zip' --draft
       - name: Create PUBLISHED release through github cli and upload assets
         env: 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ inputs.draft == 'false' }}
         run: |        
-          gh release create ${{ inputs.version }} --title ${{ inputs.version }} --generate-notes 'dist/podshell-macos.zip/podshell-macos.zip' 'dist/podshell-windows.zip/podshell-windows.zip'  
+          gh release create ${{ inputs.version }} --title ${{ inputs.version }} --generate-notes 'src/dist/podshell-macos.zip/podshell-macos.zip' 'src/dist/podshell-windows.zip/podshell-windows.zip'  
