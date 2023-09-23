@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['main.py'],
+    ['src//console.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -28,24 +28,18 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='podshell',
+    name='podshell-console',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['resources/icon512.png'],
-)
-app = BUNDLE(
-    exe,
-    name='podshell.app',
-    icon='resources/icon512.png',
-    bundle_identifier=None,
+    icon=['src//resources//icon-console512.png'],
 )
