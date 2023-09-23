@@ -3,8 +3,7 @@ name: Build -> Packages for Windows & MacOS
 # yamllint disable-line rule:line-length
 
 on:
-  release:
-    types: [released]
+  workflow_dispatch:
 
 # set the run-name 
 run-name: ${{ github.ref_name }} -> Build Packages (
@@ -41,7 +40,8 @@ jobs:
       contents: write
     steps:
 
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v4.1.0
     
     - name: Set up Python 3.11
       uses: actions/setup-python@v4.7.0
@@ -58,9 +58,8 @@ jobs:
     - name: Build with pyinstaller for ${{matrix.TARGET}}
       run: ${{matrix.CMD_BUILD}}
 
-    - name: upload packages
-      uses: softprops/action-gh-release@v0.1.15
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3.1.3
       with:
-        files: |
-          ./dist/${{ matrix.OUT_FILE_NAME}}
-
+        name: ${{ matrix.OUT_FILE_NAME }}
+        path: dist/${{ matrix.OUT_FILE_NAME }}
