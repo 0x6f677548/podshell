@@ -1,5 +1,5 @@
 ---
-name: Lint-> super-linter (only event codebase)
+name: Lint-> super-linter
 
 on:
   pull_request:
