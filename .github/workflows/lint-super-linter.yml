@@ -2,8 +2,6 @@
 name: Lint-> super-linter (only event codebase)
 
 on:
-  # release:
-    # types: [released]
   pull_request:
     branches: [master, main]
 
