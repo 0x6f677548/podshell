@@ -113,9 +113,9 @@ class SSHConnector(BaseConnector):
                     # this is actually a restart since the config file has changed
                     self._event_handler(
                         Event(
-                            connector_name=self.name,
+                            source_name=self.name,
                             event_type=EventType.STARTING,
-                            event=f"{self.name} connector starting",
+                            event_message=f"{self.name} connector starting",
                         )
                     )
 
