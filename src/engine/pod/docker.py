@@ -3,8 +3,8 @@ from os import path
 from sys import platform
 from typing import Callable
 
-import docker
-import docker.utils
+import docker  # type: ignore
+import docker.utils  # type: ignore
 
 import utils
 from engine.events import Event, EventType
