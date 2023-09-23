@@ -4,6 +4,9 @@ name: Lint-> quick lint
 on:
   push:
     branches: [master, main]
+    # only when python files are changed
+    paths: 
+      - '**.py'
   pull_request:
     branches: [master, main]
 
