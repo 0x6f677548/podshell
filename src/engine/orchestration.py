@@ -1,11 +1,13 @@
 import logging
+from typing import Callable
+
+from engine.events import Event, EventType
+
 from .pod.connection import BaseConnector as PodBaseConnector
-from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
-from .terminal import windowsterminal, iterm2
 from .pod.docker import DockerConnector
 from .pod.ssh import SSHConnector
-from engine.events import Event, EventType
-from typing import Callable
+from .terminal import iterm2, windowsterminal
+from .terminal.configuration import BaseConfigurator as TerminalBaseConfigurator
 
 
 class Orchestrator:

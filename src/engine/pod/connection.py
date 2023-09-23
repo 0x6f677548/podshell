@@ -1,8 +1,9 @@
-import time
-import threading
 import logging
-from engine.events import Event, EventType
+import threading
+import time
 from typing import Callable
+
+from engine.events import Event, EventType
 
 
 class BaseConnector(threading.Thread):

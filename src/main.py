@@ -1,16 +1,18 @@
+import datetime
 import logging
-from engine.orchestration import Orchestrator, Event, EventType
+
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QApplication,
-    QSystemTrayIcon,
     QMenu,
-    QWidget,
-    QVBoxLayout,
+    QSystemTrayIcon,
     QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtGui import QIcon, QAction
-import datetime
+
 import icon_rc  # noqa: F401
+from engine.orchestration import Event, EventType, Orchestrator
 
 
 class LogWindow(QWidget):

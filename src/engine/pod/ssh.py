@@ -1,11 +1,13 @@
+import logging
 import os
 import time
-import logging
+from typing import Callable
+
 import utils
-from .connection import BaseConnector
 from engine.events import Event, EventType
 from engine.terminal import configuration
-from typing import Callable
+
+from .connection import BaseConnector
 
 
 class SSHConnector(BaseConnector):

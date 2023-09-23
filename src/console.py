@@ -1,5 +1,5 @@
-from engine.orchestration import Orchestrator
 from engine.events import Event
+from engine.orchestration import Orchestrator
 
 
 class App:
