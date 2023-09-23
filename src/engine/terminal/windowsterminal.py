@@ -1,12 +1,13 @@
-import os
-import subprocess
-import shutil
-import re
-from datetime import datetime, timedelta
 import json
 import logging
+import os
+import re
+import shutil
+import subprocess
 import threading
+from datetime import datetime, timedelta
 from sys import platform
+
 from .configuration import BaseConfigurator, TerminalProfile
 
 _logger: logging.Logger = logging.getLogger(__name__)

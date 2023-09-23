@@ -1,13 +1,16 @@
 import logging
 from os import path
 from sys import platform
-import docker
-import docker.utils
-from .connection import BaseConnector
+from typing import Callable
+
+import docker  # type: ignore
+import docker.utils  # type: ignore
+
+import utils
 from engine.events import Event, EventType
 from engine.terminal import configuration
-import utils
-from typing import Callable
+
+from .connection import BaseConnector
 
 
 class DockerConnector(BaseConnector):

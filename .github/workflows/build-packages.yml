@@ -21,21 +21,21 @@ jobs:
           - os: macos-latest
             TARGET: macos
             CMD_BUILD: >
+                cd src/ &&
                 pyinstaller -F -w -n podshell -i resources/icon512.png main.py &&
                 pyinstaller -F -c -n podshell-console -i resources/icon-console512.png console.py &&
                 cd dist/ &&
                 zip -r9 podshell-macos *
             OUT_FILE_NAME: podshell-macos.zip
-            ASSET_MIME: application/zip
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: >
+                cd src/ &&
                 pyinstaller -F -w -n podshell -i resources/icon512.png main.py &&
                 pyinstaller -F -c -n podshell-console -i resources\icon-console512.png console.py && 
                 cd dist && 
                 tar -acvf podshell-windows.zip podshell-console.exe podshell.exe
             OUT_FILE_NAME: podshell-windows.zip
-            ASSET_MIME: application/zip
     permissions:
       contents: write
     steps:
@@ -51,7 +51,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r s./src/requirements.txt
         pip install pyinstaller
         pip install Pillow
 
@@ -63,4 +63,3 @@ jobs:
       with:
         name: ${{ matrix.OUT_FILE_NAME }}
         path: dist/${{ matrix.OUT_FILE_NAME }}
-

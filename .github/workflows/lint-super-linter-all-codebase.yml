@@ -14,7 +14,7 @@ run-name: ${{ github.ref_name }} -> Super-linter (all codebase) (
   )
 
 jobs:
-  build:
+  lint-all-codebase:
 
     name: Lint all codebase
     runs-on: ubuntu-latest

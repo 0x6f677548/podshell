@@ -1,11 +1,13 @@
+import logging
 import os
 import time
-import logging
+from typing import Callable
+
 import utils
-from .connection import BaseConnector
 from engine.events import Event, EventType
 from engine.terminal import configuration
-from typing import Callable
+
+from .connection import BaseConnector
 
 
 class SSHConnector(BaseConnector):
@@ -111,9 +113,9 @@ class SSHConnector(BaseConnector):
                     # this is actually a restart since the config file has changed
                     self._event_handler(
                         Event(
-                            connector_name=self.name,
+                            source_name=self.name,
                             event_type=EventType.STARTING,
-                            event=f"{self.name} connector starting",
+                            event_message=f"{self.name} connector starting",
                         )
                     )
 

@@ -12,7 +12,7 @@ run-name: ${{ github.ref_name }} -> Super-linter (only event codebase) (
 
 
 jobs:
-  build:
+  lint-codebase:
 
     name: Lint code base part of the event
     runs-on: ubuntu-latest
