@@ -137,6 +137,12 @@ class App:
 
     def show_log(self):
         self._log_window.show()
+        # make sure the window is on top and restore it to its original size
+        self._log_window.raise_()
+        self._log_window.showNormal()
+
+        self._log_window.activateWindow()
+        self._log_window.log_text.setFocus()
 
     def _handle_orchestrator_event(self, event: Event):
         self._logger.info(f"Event: {event.event_type}, {event.message}, {event.data}")
