@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['src//console.py'],
+    ['console.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -41,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['src//resources//icon-console512.png'],
+    icon=['resources//icon-console512.png'],
 )
