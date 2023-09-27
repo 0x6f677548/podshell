@@ -9,5 +9,24 @@ All you have to do is start your containers, and a new profile is created in you
 ## Supported terminals
 - [x] Windows Terminal
 - [x] iTerm2
-- [ ] ConEmu (soon)
 
+## Supported pod sources
+- [x] Docker
+- [x] SSH
+
+## Installation
+### Windows
+1. Download the latest release
+2. Extract the zip file
+3. Run `podshell.exe` to start the application
+
+If you prefer, a console version is also available. You can run it with `podshell-console.exe`.
+
+If you get prompted by Windows Defender, click on "More info" and then "Run anyway" (this is because the application is not signed)
+
+### MacOS
+1. Download the latest release
+2. Extract the zip file
+3. Run `podshell` to start the application
+
+If you prefer, a console version is also available. You can run it with `podshell-console`.
