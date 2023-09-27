@@ -1,10 +1,12 @@
+[![Lint](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml/badge.svg)](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml)
 # PodShell
 <img align="left" src="https://github.com/0x6f677548/podshell/assets/64972114/6391cf0c-1655-4122-949d-ccbcd9550746" height="100" width="100"/>
 PodShell sychronizes your favorite terminal with your running docker containers, or ssh configurations. 
-
 Just spin up your containers, and PodShell will automatically add them to your terminal.
 
-[![Lint](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml/badge.svg)](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml)
+![demo](https://github.com/0x6f677548/podshell/assets/64972114/7c0f482c-4879-41e6-b3a7-b71ee68b3c7f)
+
+
 ## Supported terminals
 - [x] Windows Terminal
 - [x] iTerm2
