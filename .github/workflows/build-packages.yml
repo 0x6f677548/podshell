@@ -22,8 +22,8 @@ jobs:
             TARGET: macos
             CMD_BUILD: >
                 cd src/ &&
-                pyinstaller -F -w -n podshell -i resources/icon512.png main.py &&
-                pyinstaller -F -c -n podshell-console -i resources/icon-console512.png console.py &&
+                pyinstaller podshell.spec &&
+                pyinstaller podshell-console.spec &&
                 cd dist/ &&
                 zip -r9 podshell-macos *
             OUT_FILE_NAME: podshell-macos.zip
@@ -31,8 +31,8 @@ jobs:
             TARGET: windows
             CMD_BUILD: >
                 cd src/ &&
-                pyinstaller -F -w -n podshell -i resources/icon512.png main.py &&
-                pyinstaller -F -c -n podshell-console -i resources\icon-console512.png console.py && 
+                pyinstaller podshell.spec &&
+                pyinstaller podshell-console.spec &&
                 cd dist && 
                 tar -acvf podshell-windows.zip podshell-console.exe podshell.exe
             OUT_FILE_NAME: podshell-windows.zip
