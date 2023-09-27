@@ -27,6 +27,7 @@ jobs:
                 cd dist/ &&
                 zip -r9 podshell-macos *
             OUT_FILE_NAME: podshell-macos.zip
+            OUT_ASSET_NAME: podshell-macos
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: >
@@ -36,6 +37,7 @@ jobs:
                 cd dist && 
                 tar -acvf podshell-windows.zip podshell-console.exe podshell.exe
             OUT_FILE_NAME: podshell-windows.zip
+            OUT_ASSET_NAME: podshell-windows
     permissions:
       contents: write
     steps:
@@ -61,5 +63,5 @@ jobs:
     - name: Archive artifacts
       uses: actions/upload-artifact@v3.1.3
       with:
-        name: ${{ matrix.OUT_FILE_NAME }}
+        name: ${{ matrix.OUT_ASSET_NAME }}
         path: src/dist/${{ matrix.OUT_FILE_NAME }}
