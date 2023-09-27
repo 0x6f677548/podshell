@@ -51,4 +51,5 @@ To run the console version, run:
 python console.py
 ```
 
-
+### Gui version
+<img align="left" src="https://github.com/0x6f677548/podshell/assets/64972114/f20bb879-9d08-4baf-bafa-afb05b0486dc" /> When running on Gui, a tray icon is shown where you can activate or deactivate sources and terminals. When starting, the app detects sources and terminals installed. 
