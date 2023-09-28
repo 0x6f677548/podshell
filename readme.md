@@ -20,7 +20,7 @@ PodShell monitors your ssh config file and creates profiles based on Host config
 
 ## Installation and usage
 ### Windows
-1. Download the latest release
+1. Download [latest release](https://github.com/0x6f677548/podshell/releases/latest/download/podshell-windows.zip)
 2. Extract the zip file
 3. Run `podshell.exe` to start the application
 
@@ -29,7 +29,7 @@ If you prefer, a console version is also available. You can run it with `podshel
 If you get prompted by Windows Defender, click on "More info" and then "Run anyway" (this is because the application is not signed)
 
 ### MacOS
-1. Download the latest release
+1. Download [latest release](https://github.com/0x6f677548/podshell/releases/latest/download/podshell-macos.zip)
 2. Extract the zip file
 3. Run `podshell` to start the application
 
