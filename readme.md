@@ -13,10 +13,10 @@ Just spin up your containers, and PodShell will automatically add them to your t
 
 ## Supported pod sources
 ### Docker (local)
-PodShell monitors your docker events and creates profiles for any running container. It does 
+PodShell monitors your docker events and creates profiles for any running container.
 
 ### SSH (config)
-PodShell monitors your ssh config file and creates profiles based on Host config
+PodShell monitors your ssh config file and creates profiles based on Host config.
 
 ## Installation and usage
 ### Windows
