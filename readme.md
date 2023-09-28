@@ -1,19 +1,22 @@
 [![Lint](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml/badge.svg)](https://github.com/0x6f677548/podshell/actions/workflows/lint-quick.yml)
 # PodShell
-<img align="left" src="https://github.com/0x6f677548/podshell/assets/64972114/6391cf0c-1655-4122-949d-ccbcd9550746" height="100" width="100"/>
-PodShell sychronizes your favorite terminal with your running docker containers, or ssh configurations. 
-Just spin up your containers, and PodShell will automatically add them to your terminal.
-
-![demo](https://github.com/0x6f677548/podshell/assets/64972114/7c0f482c-4879-41e6-b3a7-b71ee68b3c7f)
-
+<img align="left" src="https://github.com/0x6f677548/podshell/assets/64972114/6391cf0c-1655-4122-949d-ccbcd9550746" height="50" width="50"/>
+PodShell sychronizes your favorite terminal with your running docker containers or ssh configurations. 
+Just spin up your containers, and PodShell will automatically add them to your terminal. 
 
 ## Supported terminals
-- [x] Windows Terminal
-- [x] iTerm2
+### iTerm2 Dynamic Profiles
+![demo-iTerm2](https://github.com/0x6f677548/podshell/assets/64972114/7c0f482c-4879-41e6-b3a7-b71ee68b3c7f)
+
+### Windows Terminal Profiles
+![demo-windowsTerminal](https://github.com/0x6f677548/podshell/assets/64972114/f707e629-d0c1-48c2-93b4-1bdeeacb662c)
 
 ## Supported pod sources
-- [x] Docker
-- [x] SSH
+### Docker (local)
+PodShell monitors your docker events and creates profiles for any running container.
+
+### SSH (config)
+PodShell monitors your ssh config file and creates profiles based on Host config
 
 ## Installation and usage
 ### Windows
@@ -46,10 +49,12 @@ To run the gui version, run:
 ```bash
 python main.py
 ```
+
 To run the console version, run:
 ```bash
 python console.py
 ```
+### Gui Version
+When running on Gui, a tray icon is shown where you can activate or deactivate sources and terminals. When starting, the app detects sources and terminals installed. You can toggle on/off the sources and terminal integration. A single terminal is supported per platform (win32/MacOS) but more terminals will be integrated in the future.
 
-### Gui version
-<img align="left" src="https://github.com/0x6f677548/podshell/assets/64972114/f20bb879-9d08-4baf-bafa-afb05b0486dc" /> When running on Gui, a tray icon is shown where you can activate or deactivate sources and terminals. When starting, the app detects sources and terminals installed. 
+![system-tray-icon](https://github.com/0x6f677548/podshell/assets/64972114/f20bb879-9d08-4baf-bafa-afb05b0486dc)
