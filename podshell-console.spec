@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['console.py'],
+    ['src//console.py'],
     pathex=[],
     binaries=[],
     datas=[],

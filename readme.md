@@ -42,7 +42,6 @@ You can also run the application from source. To do so, you will need to have [P
 ```bash
 git clone https://www.github.com/0x6f677548/podshell
 cd podshell
-cd src
 python -m pip install -r requirements.txt
 ```
 To run the gui version, run:
@@ -54,6 +53,18 @@ To run the console version, run:
 ```bash
 python console.py
 ```
+### Build binaries for your platform
+You can build binaries for your platform by running the following commands:
+```bash
+git clone https://www.github.com/0x6f677548/podshell
+cd podshell
+python -m pip install -r requirements.txt
+pip install pyinstaller
+pip install pillow
+pyinstaller podshell.spec
+pyinstaller podshell-console.spec
+```
+
 ### Gui Version
 When running on Gui, a tray icon is shown where you can activate or deactivate sources and terminals. When starting, the app detects sources and terminals installed. You can toggle on/off the sources and terminal integration. A single terminal is supported per platform (win32/MacOS) but more terminals will be integrated in the future.
 
