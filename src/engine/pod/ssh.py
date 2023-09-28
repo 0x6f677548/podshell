@@ -1,5 +1,6 @@
 import logging
 import os
+from sys import platform
 import time
 from typing import Callable
 
@@ -8,6 +9,8 @@ from engine.events import Event, EventType
 from engine.terminal import configuration
 
 from .connection import BaseConnector
+
+SSH_COMMAND = "ssh" if platform != "win32" else "ssh.exe"
 
 
 class SSHConnector(BaseConnector):
@@ -33,7 +36,7 @@ class SSHConnector(BaseConnector):
         event_handler: Callable[[Event], None],
         ssh_config_file: str = os.path.expanduser(os.path.join("~", ".ssh", "config")),
         poll_interval: int = 5,
-        ssh_command: str | None = utils.which("ssh", "ssh"),
+        ssh_command: str | None = utils.which(SSH_COMMAND, SSH_COMMAND),
     ):
         """Initializes the SSHConnector."""
         super().__init__(

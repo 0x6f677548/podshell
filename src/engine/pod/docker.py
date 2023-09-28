@@ -12,6 +12,8 @@ from engine.terminal import configuration
 
 from .connection import BaseConnector
 
+DOCKER_COMMAND = "docker" if platform != "win32" else "docker.exe"
+
 
 class DockerConnector(BaseConnector):
     """A connector that subscribes to Docker events"""
@@ -21,7 +23,7 @@ class DockerConnector(BaseConnector):
         event_handler: Callable[[Event], None],
         docker_client: docker.DockerClient = None,
         shell_command: str = "/bin/sh",
-        docker_command: str | None = utils.which("docker", "docker"),
+        docker_command: str | None = utils.which(DOCKER_COMMAND, DOCKER_COMMAND),
     ):
         """Initializes the DockerConnector."""
         super().__init__(
