@@ -4,10 +4,6 @@ name: Lint-> super-linter (all codebase)
 on:
   workflow_dispatch:
   
-  schedule:
-    # run once a month on the first day of the month at 00:00 UTC
-    - cron: '0 0 1 * *'
-
 # set the run-name 
 run-name: ${{ github.ref_name }} -> Super-linter (all codebase) (
   ${{ github.run_attempt }}
